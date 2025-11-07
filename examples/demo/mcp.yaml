@@ -1,0 +1,190 @@
+# MCP API Specification - Comprehensive Demo
+# This demonstrates all mcpgen features
+
+info:
+  title: demo-server
+  version: 1.0.0
+  description: A comprehensive demo MCP server showcasing all features
+
+# Reusable schema components
+components:
+  schemas:
+    # Example 1: Schema with enum (demonstrates enum support)
+    CalculateInput:
+      type: object
+      properties:
+        operation:
+          type: string
+          enum: [add, subtract, multiply, divide]
+          description: The arithmetic operation to perform
+        a:
+          type: number
+          description: First operand
+        b:
+          type: number
+          description: Second operand
+      required: [operation, a, b]
+
+    # Example 2: Schema with various types
+    TaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Task title
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Task priority level
+        deadline:
+          type: string
+          format: date-time
+          description: Task deadline
+        tags:
+          type: array
+          items:
+            type: string
+          description: Task tags
+        completed:
+          type: boolean
+          description: Whether task is completed
+      required: [title, priority]
+
+    # Example 3: Output schema for resources
+    TaskDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Task ID
+        title:
+          type: string
+          description: Task title
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Priority level
+        status:
+          type: string
+          enum: [pending, in_progress, completed, cancelled]
+          description: Task status
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+    # Example 4: Simple result schema
+    Result:
+      type: object
+      properties:
+        value:
+          type: number
+          description: The result value
+        operation:
+          type: string
+          description: The operation that was performed
+
+# MCP Tools - Demonstrate typed inputs
+tools:
+  # Tool 1: With enum in input schema
+  - name: calculate
+    description: Perform basic arithmetic operations
+    readonly: false
+    destructive: false
+    idempotent: true
+    annotations:
+      category: math
+      complexity: low
+    inputSchema:
+      $ref: "#/components/schemas/CalculateInput"
+
+  # Tool 2: With complex typed input
+  - name: create_task
+    description: Create a new task
+    readonly: false
+    destructive: false
+    idempotent: false
+    inputSchema:
+      $ref: "#/components/schemas/TaskInput"
+
+  # Tool 3: With inline schema
+  - name: search
+    description: Search for items
+    readonly: true
+    idempotent: true
+    inputSchema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Search query
+        filter:
+          type: string
+          enum: [all, active, completed]
+          description: Filter results
+        limit:
+          type: integer
+          description: Maximum number of results
+          default: 10
+      required: [query]
+
+  # Tool 4: Simple schema
+  - name: get_history
+    description: Get calculation history
+    readonly: true
+    idempotent: true
+    inputSchema:
+      type: object
+      properties:
+        limit:
+          type: integer
+          description: Maximum number of history entries
+          default: 10
+
+# MCP Resources - Static and templated
+resources:
+  # Static resource
+  - uri: "docs://readme"
+    name: Demo README
+    description: Documentation for the demo server
+    mimeType: text/markdown
+    readonly: true
+
+  # Templated resource with schema
+  - uriTemplate: "task://{id}"
+    name: Task Details
+    description: Get details for a specific task
+    mimeType: application/json
+    readonly: true
+    schema:
+      $ref: "#/components/schemas/TaskDetails"
+
+  # Another templated resource
+  - uriTemplate: "result://{operation}"
+    name: Last Result
+    description: Get the last result for a specific operation
+    mimeType: application/json
+    readonly: true
+    schema:
+      $ref: "#/components/schemas/Result"
+
+# MCP Prompts - With and without arguments
+prompts:
+  # Prompt with arguments
+  - name: task_help
+    description: Get help with task management
+    arguments:
+      - name: topic
+        description: The help topic (tasks, priorities, etc)
+        required: false
+      - name: detailed
+        description: Whether to show detailed help
+        required: false
+
+  # Simple prompt
+  - name: math_help
+    description: Get help with mathematical operations
+    arguments:
+      - name: operation
+        description: The operation to get help with
+        required: false

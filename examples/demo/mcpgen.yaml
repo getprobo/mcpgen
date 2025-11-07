@@ -1,0 +1,35 @@
+# mcpgen Example - Comprehensive Demo
+# This example demonstrates all mcpgen features:
+# - Typed inputs with enums
+# - Tools with various input schemas
+# - Resources (static and templated)
+# - Prompts with arguments
+# - Schema references and reusable components
+
+# Path to MCP API specification
+spec: mcp.yaml
+
+# Code generation settings
+generate:
+  # Output directory for generated code
+  output: generated
+
+  # Package name for generated code
+  package: generated
+
+  # Resolver configuration
+  resolver:
+    filename: resolver.go
+    package: generated
+    type: Resolver
+    preserve: true
+
+  # Model generation settings
+  models:
+    filename: models.go
+    package: generated
+
+# Generation options
+options:
+  skipValidation: false
+  verboseComments: true
