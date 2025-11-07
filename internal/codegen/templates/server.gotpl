@@ -35,10 +35,13 @@ func New(resolver *{{.ResolverType}}) *Server {
 // Start initializes and starts the MCP server
 func (s *Server) Start(ctx context.Context) error {
 	// Create MCP server
-	s.mcpServer = mcp.NewServer(&mcp.Implementation{
-		Name:    "{{.ServerName}}",
-		Version: "{{.ServerVersion}}",
-	}, nil)
+	s.mcpServer = mcp.NewServer(
+		&mcp.Implementation{
+			Name:    "{{.ServerName}}",
+			Version: "{{.ServerVersion}}",
+		},
+		nil,
+	)
 
 	// Register tool handlers
 	s.registerToolHandlers()
@@ -64,16 +67,26 @@ func (s *Server) Start(ctx context.Context) error {
 func (s *Server) registerToolHandlers() {
 	{{- range .Tools}}
 	{{- if .HasInputType}}
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "{{.Name}}",
-		Description: "{{.Description}}",
-		InputSchema: {{.HandlerName}}ToolInputSchema,
-	}, s.resolver.{{.HandlerName}}Tool)
+	mcp.AddTool(
+		s.mcpServer,
+		&mcp.Tool{
+			Name:        "{{.Name}}",
+			Description: "{{.Description}}",
+			InputSchema: {{.HandlerName}}ToolInputSchema,
+		},
+		s.resolver.{{.HandlerName}}Tool,
+	)
+
 	{{- else}}
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "{{.Name}}",
-		Description: "{{.Description}}",
-	}, s.resolver.{{.HandlerName}}Tool)
+	mcp.AddTool(
+		s.mcpServer,
+		&mcp.Tool{
+			Name:        "{{.Name}}",
+			Description: "{{.Description}}",
+		},
+		s.resolver.{{.HandlerName}}Tool,
+	)
+
 	{{- end}}
 	{{- end}}
 }
@@ -84,23 +97,31 @@ func (s *Server) registerToolHandlers() {
 func (s *Server) registerResourceHandlers() {
 	{{- range .Resources}}
 	{{- if .URI}}
-	s.mcpServer.AddResource(&mcp.Resource{
-		URI:         "{{.URI}}",
-		Name:        "{{.Name}}",
-		Description: "{{.Description}}",
-		{{- if .MimeType}}
-		MIMEType:    "{{.MimeType}}",
-		{{- end}}
-	}, s.resolver.{{.HandlerName}}Resource)
+	s.mcpServer.AddResource(
+		&mcp.Resource{
+			URI:         "{{.URI}}",
+			Name:        "{{.Name}}",
+			Description: "{{.Description}}",
+			{{- if .MimeType}}
+			MIMEType:    "{{.MimeType}}",
+			{{- end}}
+		},
+		s.resolver.{{.HandlerName}}Resource,
+	)
+
 	{{- else if .URITemplate}}
-	s.mcpServer.AddResourceTemplate(&mcp.ResourceTemplate{
-		URITemplate: "{{.URITemplate}}",
-		Name:        "{{.Name}}",
-		Description: "{{.Description}}",
-		{{- if .MimeType}}
-		MIMEType:    "{{.MimeType}}",
-		{{- end}}
-	}, s.resolver.{{.HandlerName}}Resource)
+	s.mcpServer.AddResourceTemplate(
+		&mcp.ResourceTemplate{
+			URITemplate: "{{.URITemplate}}",
+			Name:        "{{.Name}}",
+			Description: "{{.Description}}",
+			{{- if .MimeType}}
+			MIMEType:    "{{.MimeType}}",
+			{{- end}}
+		},
+		s.resolver.{{.HandlerName}}Resource,
+	)
+
 	{{- end}}
 	{{- end}}
 }
@@ -111,21 +132,25 @@ func (s *Server) registerResourceHandlers() {
 // registerPromptHandlers registers all prompt handlers
 func (s *Server) registerPromptHandlers() {
 	{{- range .Prompts}}
-	mcputil.AddPrompt(s.mcpServer, &mcp.Prompt{
-		Name:        "{{.Name}}",
-		Description: "{{.Description}}",
-		{{- if .Arguments}}
-		Arguments: []*mcp.PromptArgument{
-			{{- range .Arguments}}
-			{
-				Name:        "{{.Name}}",
-				Description: "{{.Description}}",
-				Required:    {{.Required}},
+	mcputil.AddPrompt(
+		s.mcpServer,
+		&mcp.Prompt{
+			Name:        "{{.Name}}",
+			Description: "{{.Description}}",
+			{{- if .Arguments}}
+			Arguments: []*mcp.PromptArgument{
+				{{- range .Arguments}}
+				{
+					Name:        "{{.Name}}",
+					Description: "{{.Description}}",
+					Required:    {{.Required}},
+				},
+				{{- end}}
 			},
 			{{- end}}
 		},
-		{{- end}}
-	}, s.resolver.{{.HandlerName}}Prompt)
+		s.resolver.{{.HandlerName}}Prompt,
+	)
 	{{- end}}
 }
 {{- end}}
