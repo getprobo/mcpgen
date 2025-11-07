@@ -108,7 +108,7 @@ func runInit(name string) error {
 # This file contains only code generation settings
 
 # Path to MCP API specification
-spec: mcp.yaml
+spec: schema.yaml
 
 # Code generation settings
 generate:
@@ -141,7 +141,7 @@ options:
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	mcpContent := fmt.Sprintf(`# MCP API Specification
+	schemaContent := fmt.Sprintf(`# MCP API Specification
 # This file contains the pure MCP API definition
 
 info:
@@ -177,95 +177,19 @@ resources: []
 prompts: []
 `, name)
 
-	mcpPath := filepath.Join(name, "mcp.yaml")
-	if err := os.WriteFile(mcpPath, []byte(mcpContent), 0644); err != nil {
-		return fmt.Errorf("failed to write MCP spec file: %w", err)
-	}
-
-	mainContent := fmt.Sprintf(`package main
-
-import (
-	"context"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"%s/generated"
-)
-
-func main() {
-	// Create resolver
-	resolver := generated.NewResolver()
-
-	// Create server
-	server := generated.New(resolver)
-
-	// Setup graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		<-sigChan
-		log.Println("Shutting down...")
-		cancel()
-	}()
-
-	// Start server
-	if err := server.Start(ctx); err != nil {
-		log.Fatalf("Server error: %%v", err)
-	}
-}
-`, name)
-
-	mainPath := filepath.Join(name, "main.go")
-	if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
-		return fmt.Errorf("failed to write main.go: %w", err)
-	}
-
-	readmeContent := fmt.Sprintf(`# %s
-
-MCP server generated with mcpgen.
-
-## Getting Started
-
-1. Edit the API specification in mcp.yaml (define tools, resources, prompts)
-2. Adjust code generation settings in mcpgen.yaml if needed
-3. Generate code:
-   ` + "```bash" + `
-   mcpgen generate
-   ` + "```" + `
-4. Implement your handlers in resolver.go
-5. Build and run:
-   ` + "```bash" + `
-   go mod init %s
-   go mod tidy
-   go build -o server
-   ./server
-   ` + "```" + `
-
-## Project Structure
-
-- mcpgen.yaml - Code generation configuration
-- mcp.yaml - MCP API specification (tools, resources, prompts)
-- generated/ - Generated code (server, models, resolver stubs)
-- main.go - Entry point
-`, name, name, name)
-
-	readmePath := filepath.Join(name, "README.md")
-	if err := os.WriteFile(readmePath, []byte(readmeContent), 0644); err != nil {
-		return fmt.Errorf("failed to write README: %w", err)
+	schemaPath := filepath.Join(name, "schema.yaml")
+	if err := os.WriteFile(schemaPath, []byte(schemaContent), 0644); err != nil {
+		return fmt.Errorf("failed to write schema file: %w", err)
 	}
 
 	fmt.Printf("\n✓ Project initialized successfully!\n\n")
+	fmt.Printf("Files created:\n")
+	fmt.Printf("  - mcpgen.yaml (code generation configuration)\n")
+	fmt.Printf("  - schema.yaml (MCP API specification)\n\n")
 	fmt.Printf("Next steps:\n")
 	fmt.Printf("  cd %s\n", name)
+	fmt.Printf("  # Edit schema.yaml to define your tools, resources, and prompts\n")
 	fmt.Printf("  mcpgen generate\n")
-	fmt.Printf("  go mod init %s\n", name)
-	fmt.Printf("  go mod tidy\n")
 
 	return nil
 }
