@@ -72,7 +72,7 @@ func (s *Server) registerToolHandlers() {
 		&mcp.Tool{
 			Name:        "{{.Name}}",
 			Description: "{{.Description}}",
-			InputSchema: {{.HandlerName}}ToolInputSchema,
+			InputSchema: {{.InputSchemaVar}},
 		},
 		s.resolver.{{.HandlerName}}Tool,
 	)

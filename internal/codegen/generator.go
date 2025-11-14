@@ -13,6 +13,7 @@ import (
 
 	"go.probo.inc/mcpgen/internal/config"
 	"go.probo.inc/mcpgen/internal/schema"
+	"golang.org/x/mod/modfile"
 )
 
 //go:embed templates/*.gotpl
@@ -170,16 +171,16 @@ func toPascalCase(s string) string {
 }
 
 func (g *Generator) generateModels() error {
-	code, err := g.typeGen.Generate(g.config.Generate.Package)
+	code, err := g.typeGen.Generate(g.config.Model.Package)
 	if err != nil {
 		return err
 	}
 
 	modelsFile := "models.go"
-	if g.config.Generate.Models.Filename != "" {
-		modelsFile = g.config.Generate.Models.Filename
+	if g.config.Model.Filename != "" {
+		modelsFile = g.config.Model.Filename
 	}
-	modelsPath := filepath.Join(g.config.Generate.Output, modelsFile)
+	modelsPath := filepath.Join(g.config.Output, modelsFile)
 
 	dir := filepath.Dir(modelsPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -212,7 +213,7 @@ func (g *Generator) generateServer() error {
 		return fmt.Errorf("failed to format server code: %w\n%s", err, buf.String())
 	}
 
-	serverFile := filepath.Join(g.config.Generate.Output, "server.go")
+	serverFile := filepath.Join(g.config.Output, "server.go")
 
 	dir := filepath.Dir(serverFile)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -228,7 +229,7 @@ func (g *Generator) generateServer() error {
 }
 
 func (g *Generator) generateResolver() error {
-	resolverFile := filepath.Join(g.config.Generate.Output, g.config.Generate.Resolver.Filename)
+	resolverFile := filepath.Join(g.config.Output, g.config.Resolver.Filename)
 
 	fileExists := false
 	if _, err := os.Stat(resolverFile); err == nil {
@@ -236,10 +237,10 @@ func (g *Generator) generateResolver() error {
 	}
 
 	var orphanedHandlers string
-	if fileExists && g.config.Generate.Resolver.Preserve {
+	if fileExists && g.config.Resolver.Preserve {
 		parser, err := NewResolverParser(resolverFile)
 		if err == nil {
-			existingHandlers, err := parser.ExtractHandlers(g.config.Generate.Resolver.Type)
+			existingHandlers, err := parser.ExtractHandlers(g.config.Resolver.Type)
 			if err == nil {
 				requiredHandlers := g.getRequiredHandlerNames()
 				IdentifyOrphanedHandlers(existingHandlers, requiredHandlers)
@@ -318,6 +319,20 @@ func (g *Generator) getRequiredHandlerNames() []string {
 }
 
 func (g *Generator) buildServerTemplateData() map[string]interface{} {
+	// Compute type prefix if model package is different
+	modelPackage := g.config.Model.Package
+	resolverPackage := g.config.Resolver.Package
+	typePrefix := ""
+	modelImportPath := ""
+
+	if modelPackage != resolverPackage {
+		parts := strings.Split(modelPackage, "/")
+		typePrefix = parts[len(parts)-1] + "."
+
+		// Compute the full import path for the model package
+		modelImportPath = g.computeModelImportPath()
+	}
+
 	tools := make([]map[string]interface{}, 0, len(g.spec.Tools))
 	hasTypedTools := false
 	for _, tool := range g.spec.Tools {
@@ -329,9 +344,13 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 
 		// Add input type information and schema code
 		if tool.InputSchema != nil {
-			inputTypeName := toPascalCase(tool.Name) + "Input"
+			inputTypeName := typePrefix + toPascalCase(tool.Name) + "Input"
 			toolData["InputType"] = inputTypeName
 			toolData["HasInputType"] = true
+
+			// Add schema variable name with proper prefix
+			schemaVarName := typePrefix + toHandlerName(tool.Name) + "ToolInputSchema"
+			toolData["InputSchemaVar"] = schemaVarName
 
 			resolvedSchema := tool.InputSchema
 			if config.IsSchemaRef(tool.InputSchema) && len(tool.InputSchema.Ref) > 0 && tool.InputSchema.Ref[0] == '#' {
@@ -390,7 +409,7 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 
 		// Add args type if there are arguments
 		if len(prompt.Arguments) > 0 {
-			argsTypeName := toPascalCase(prompt.Name) + "Args"
+			argsTypeName := typePrefix + toPascalCase(prompt.Name) + "Args"
 			promptData["ArgsType"] = argsTypeName
 			promptData["HasArgsType"] = true
 		}
@@ -398,11 +417,11 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 		prompts = append(prompts, promptData)
 	}
 
-	return map[string]interface{}{
-		"Package":       g.config.Generate.Package,
+	data := map[string]interface{}{
+		"Package":       g.config.Resolver.Package,
 		"ServerName":    g.spec.Info.Title,
 		"ServerVersion": g.spec.Info.Version,
-		"ResolverType":  g.config.Generate.Resolver.Type,
+		"ResolverType":  g.config.Resolver.Type,
 		"Tools":         tools,
 		"Resources":     resources,
 		"Prompts":       prompts,
@@ -410,10 +429,100 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 		"HasPrompts":    len(prompts) > 0,
 		"HasTypedTools": hasTypedTools,
 	}
+
+	// Add model package import if different from resolver package
+	if modelPackage != resolverPackage && modelImportPath != "" {
+		var imports []string
+		imports = append(imports, modelImportPath)
+		data["Imports"] = imports
+	}
+
+	return data
 }
 
 func (g *Generator) buildResolverTemplateData() map[string]interface{} {
 	return g.buildServerTemplateData()
+}
+
+// computeModelImportPath computes the full import path for the model package
+func (g *Generator) computeModelImportPath() string {
+	// If the model package is already a full path (contains slashes), use it as-is
+	if strings.Contains(g.config.Model.Package, "/") {
+		return g.config.Model.Package
+	}
+
+	// Make output path absolute
+	absOutput, err := filepath.Abs(g.config.Output)
+	if err != nil {
+		return g.config.Model.Package
+	}
+
+	// Find the closest go.mod to the output directory
+	modulePath, moduleRoot, err := findClosestGoMod(absOutput)
+	if err != nil {
+		// If we can't read go.mod, fall back to using the package name directly
+		return g.config.Model.Package
+	}
+
+	// Compute the relative path from module root to output directory
+	relPath, err := filepath.Rel(moduleRoot, absOutput)
+	if err != nil {
+		// If we can't compute relative path, fall back to package name
+		return g.config.Model.Package
+	}
+
+	// Compute the import path based on module + relative path + model filename dir
+	// Example: demo + generated + types = demo/generated/types
+	modelDir := filepath.Dir(g.config.Model.Filename)
+	if modelDir == "." {
+		// If model filename has no directory component, use the model package name
+		return filepath.ToSlash(filepath.Join(modulePath, relPath, g.config.Model.Package))
+	}
+
+	// Otherwise, use the directory from the filename
+	return filepath.ToSlash(filepath.Join(modulePath, relPath, modelDir))
+}
+
+// findClosestGoMod finds the closest go.mod file by walking up from the given directory
+// Returns the module path and the directory containing go.mod
+func findClosestGoMod(startDir string) (modulePath string, moduleRoot string, err error) {
+	// Make startDir absolute
+	absDir, err := filepath.Abs(startDir)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Walk up the directory tree looking for go.mod
+	currentDir := absDir
+	for {
+		goModPath := filepath.Join(currentDir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			// Found go.mod, parse it using the official modfile package
+			data, err := os.ReadFile(goModPath)
+			if err != nil {
+				return "", "", err
+			}
+
+			parsed, err := modfile.Parse(goModPath, data, nil)
+			if err != nil {
+				return "", "", fmt.Errorf("failed to parse %s: %w", goModPath, err)
+			}
+
+			if parsed.Module == nil || parsed.Module.Mod.Path == "" {
+				return "", "", fmt.Errorf("no module directive found in %s", goModPath)
+			}
+
+			return parsed.Module.Mod.Path, currentDir, nil
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			// Reached the root directory
+			return "", "", fmt.Errorf("no go.mod found in any parent directory of %s", absDir)
+		}
+		currentDir = parent
+	}
 }
 
 func toHandlerName(name string) string {

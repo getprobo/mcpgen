@@ -104,36 +104,24 @@ func runInit(name string) error {
 		return fmt.Errorf("failed to create project directory: %w", err)
 	}
 
-	configContent := `# mcpgen Generation Configuration
-# This file contains only code generation settings
-
+	configContent := `# mcpgen configuration
 # Path to MCP API specification
 spec: schema.yaml
 
-# Code generation settings
-generate:
-  # Output directory for generated code
-  output: generated
+# Output directory for generated code
+output: generated
 
-  # Package name for generated code
+# Resolver configuration
+resolver:
   package: generated
+  filename: resolver.go
+  type: Resolver
+  preserve: true
 
-  # Resolver configuration
-  resolver:
-    filename: resolver.go
-    package: generated
-    type: Resolver
-    preserve: true
-
-  # Optional: Model-specific settings
-  models:
-    filename: models.go
-    package: generated
-
-# Optional: Additional generation options
-options:
-  skipValidation: false
-  verboseComments: false
+# Model configuration
+model:
+  package: generated
+  filename: models.go
 `
 
 	configPath := filepath.Join(name, "mcpgen.yaml")

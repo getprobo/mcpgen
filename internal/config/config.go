@@ -11,34 +11,22 @@ import (
 )
 
 type Config struct {
-	Spec     string             `yaml:"spec" json:"spec"`
-	Generate GenerateConfig     `yaml:"generate" json:"generate"`
-	Options  GenerationOptions  `yaml:"options,omitempty" json:"options,omitempty"`
-}
-
-type GenerateConfig struct {
+	Spec     string         `yaml:"spec" json:"spec"`
 	Output   string         `yaml:"output" json:"output"`
-	Package  string         `yaml:"package" json:"package"`
 	Resolver ResolverConfig `yaml:"resolver" json:"resolver"`
-	Models   ModelsConfig   `yaml:"models,omitempty" json:"models,omitempty"`
+	Model    ModelConfig    `yaml:"model,omitempty" json:"model,omitempty"`
 }
 
 type ResolverConfig struct {
-	Filename string `yaml:"filename" json:"filename"`
 	Package  string `yaml:"package" json:"package"`
+	Filename string `yaml:"filename" json:"filename"`
 	Type     string `yaml:"type" json:"type"`
 	Preserve bool   `yaml:"preserve" json:"preserve"`
 }
 
-type ModelsConfig struct {
-	Filename string `yaml:"filename,omitempty" json:"filename,omitempty"`
+type ModelConfig struct {
 	Package  string `yaml:"package,omitempty" json:"package,omitempty"`
-}
-
-type GenerationOptions struct {
-	SkipValidation  bool   `yaml:"skipValidation,omitempty" json:"skipValidation,omitempty"`
-	VerboseComments bool   `yaml:"verboseComments,omitempty" json:"verboseComments,omitempty"`
-	Templates       string `yaml:"templates,omitempty" json:"templates,omitempty"`
+	Filename string `yaml:"filename,omitempty" json:"filename,omitempty"`
 }
 
 type ServerInfo struct {
@@ -98,16 +86,17 @@ func Load(path string) (*Config, *MCPSpec, error) {
 	}
 
 	config := &Config{
-		Spec: "mcp.yaml",
-		Generate: GenerateConfig{
-			Output:  "generated",
-			Package: "generated",
-			Resolver: ResolverConfig{
-				Filename: "resolver.go",
-				Package:  "generated",
-				Type:     "Resolver",
-				Preserve: true,
-			},
+		Spec:   "schema.yaml",
+		Output: "generated",
+		Resolver: ResolverConfig{
+			Package:  "generated",
+			Filename: "resolver.go",
+			Type:     "Resolver",
+			Preserve: true,
+		},
+		Model: ModelConfig{
+			Package:  "generated",
+			Filename: "models.go",
 		},
 	}
 
@@ -127,6 +116,12 @@ func Load(path string) (*Config, *MCPSpec, error) {
 
 	if err := config.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	// Make output path absolute relative to config file directory
+	configDir := filepath.Dir(path)
+	if !filepath.IsAbs(config.Output) {
+		config.Output = filepath.Join(configDir, config.Output)
 	}
 
 	specPath := config.Spec
@@ -163,11 +158,14 @@ func (c *Config) Validate() error {
 	if c.Spec == "" {
 		return fmt.Errorf("spec path is required")
 	}
-	if c.Generate.Output == "" {
-		return fmt.Errorf("generate.output is required")
+	if c.Output == "" {
+		return fmt.Errorf("output is required")
 	}
-	if c.Generate.Package == "" {
-		return fmt.Errorf("generate.package is required")
+	if c.Resolver.Package == "" {
+		return fmt.Errorf("resolver.package is required")
+	}
+	if c.Model.Package == "" {
+		return fmt.Errorf("model.package is required")
 	}
 
 	return nil
