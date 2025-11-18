@@ -48,8 +48,12 @@ func (g *Generator) Generate() error {
 		return fmt.Errorf("failed to generate server: %w", err)
 	}
 
-	if err := g.generateResolver(); err != nil {
-		return fmt.Errorf("failed to generate resolver: %w", err)
+	if err := g.generateResolverStruct(); err != nil {
+		return fmt.Errorf("failed to generate resolver struct: %w", err)
+	}
+
+	if err := g.generateResolverImplementations(); err != nil {
+		return fmt.Errorf("failed to generate resolver implementations: %w", err)
 	}
 
 	return nil
@@ -228,40 +232,69 @@ func (g *Generator) generateServer() error {
 	return nil
 }
 
-func (g *Generator) generateResolver() error {
-	resolverFile := filepath.Join(g.config.Output, g.config.Resolver.Filename)
+// generateResolverStruct creates the main resolver.go file with the Resolver struct
+// This file is only generated once and users can edit it freely
+func (g *Generator) generateResolverStruct() error {
+	resolverFile := filepath.Join(g.config.Output, "resolver.go")
+
+	// Only generate if file doesn't exist
+	if _, err := os.Stat(resolverFile); err == nil {
+		fmt.Printf("Resolver struct already exists, skipping: %s\n", resolverFile)
+		return nil
+	}
+
+	tmpl, err := template.ParseFS(templates, "templates/resolver_struct.gotpl")
+	if err != nil {
+		return fmt.Errorf("failed to parse resolver_struct template: %w", err)
+	}
+
+	data := map[string]interface{}{
+		"Package":      g.config.Resolver.Package,
+		"ResolverType": g.config.Resolver.Type,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return fmt.Errorf("failed to execute resolver_struct template: %w", err)
+	}
+
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to format resolver struct code: %w\n%s", err, buf.String())
+	}
+
+	if err := os.WriteFile(resolverFile, formatted, 0644); err != nil {
+		return fmt.Errorf("failed to write resolver struct file: %w", err)
+	}
+
+	fmt.Printf("Generated resolver struct: %s\n", resolverFile)
+	return nil
+}
+
+// generateResolverImplementations creates/updates schema.resolvers.go with tool/prompt/resource implementations
+func (g *Generator) generateResolverImplementations() error {
+	resolverFile := filepath.Join(g.config.Output, "schema.resolvers.go")
 
 	fileExists := false
 	if _, err := os.Stat(resolverFile); err == nil {
 		fileExists = true
 	}
 
-	var orphanedHandlers string
-	if fileExists && g.config.Resolver.Preserve {
-		parser, err := NewResolverParser(resolverFile)
-		if err == nil {
-			existingHandlers, err := parser.ExtractHandlers(g.config.Resolver.Type)
-			if err == nil {
-				requiredHandlers := g.getRequiredHandlerNames()
-				IdentifyOrphanedHandlers(existingHandlers, requiredHandlers)
-				orphanedHandlers = FormatOrphanedHandlers(existingHandlers)
-
-				hasNewHandlers := false
-				for _, required := range requiredHandlers {
-					if _, exists := existingHandlers[required]; !exists {
-						hasNewHandlers = true
-						break
-					}
-				}
-
-				if !hasNewHandlers && orphanedHandlers == "" {
-					fmt.Printf("Resolver is up to date, skipping: %s\n", resolverFile)
-					return nil
-				}
-			}
-		}
+	// If file doesn't exist, generate from template (initial generation)
+	if !fileExists {
+		return g.generateResolverFromTemplate(resolverFile)
 	}
 
+	// File exists and preserve is enabled - do incremental update (gqlgen-style)
+	if g.config.Resolver.Preserve {
+		return g.updateResolverIncremental(resolverFile)
+	}
+
+	// File exists but preserve is disabled - regenerate completely
+	return g.generateResolverFromTemplate(resolverFile)
+}
+
+func (g *Generator) generateResolverFromTemplate(resolverFile string) error {
 	tmpl, err := template.ParseFS(templates, "templates/resolver.gotpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse resolver template: %w", err)
@@ -274,10 +307,6 @@ func (g *Generator) generateResolver() error {
 		return fmt.Errorf("failed to execute resolver template: %w", err)
 	}
 
-	if orphanedHandlers != "" {
-		buf.WriteString(orphanedHandlers)
-	}
-
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to format resolver code: %w\n%s", err, buf.String())
@@ -287,17 +316,273 @@ func (g *Generator) generateResolver() error {
 		return fmt.Errorf("failed to write resolver file: %w", err)
 	}
 
-	if fileExists {
-		if orphanedHandlers != "" {
-			fmt.Printf("Updated resolver with orphaned handlers: %s\n", resolverFile)
-		} else {
-			fmt.Printf("Updated resolver with new handlers: %s\n", resolverFile)
-		}
-	} else {
-		fmt.Printf("Generated resolver stubs: %s\n", resolverFile)
+	fmt.Printf("Generated resolver implementations: %s\n", resolverFile)
+	return nil
+}
+
+func (g *Generator) updateResolverIncremental(resolverFile string) error {
+	parser, err := NewResolverParser(resolverFile)
+	if err != nil {
+		return fmt.Errorf("failed to parse existing resolver: %w", err)
 	}
 
+	existingHandlers, err := parser.ExtractHandlers(g.config.Resolver.Type)
+	if err != nil {
+		return fmt.Errorf("failed to extract handlers: %w", err)
+	}
+
+	requiredHandlers := g.getRequiredHandlerNames()
+
+	// Identify which handlers are new
+	newHandlers := []string{}
+	for _, required := range requiredHandlers {
+		if _, exists := existingHandlers[required]; !exists {
+			newHandlers = append(newHandlers, required)
+		}
+	}
+
+	// Identify orphaned handlers (exist in file but not in spec, excluding already orphaned ones)
+	// First, get the list of handlers that were already in the orphaned section
+	previouslyOrphanedHandlers := extractOrphanedHandlerNames(resolverFile)
+
+	// Identify which handlers are orphaned (not in required list and not already in orphaned section)
+	currentlyOrphanedHandlers := []string{}
+	for handlerName := range existingHandlers {
+		isRequired := false
+		for _, required := range requiredHandlers {
+			if required == handlerName {
+				isRequired = true
+				break
+			}
+		}
+		// Only mark as newly orphaned if not required and not already orphaned
+		if !isRequired && !contains(previouslyOrphanedHandlers, handlerName) {
+			currentlyOrphanedHandlers = append(currentlyOrphanedHandlers, handlerName)
+		}
+	}
+
+	// Check if any previously orphaned handlers are now required (should be removed from orphaned)
+	orphanedHandlersRemoved := []string{}
+	for _, orphanedName := range previouslyOrphanedHandlers {
+		if contains(requiredHandlers, orphanedName) {
+			orphanedHandlersRemoved = append(orphanedHandlersRemoved, orphanedName)
+		}
+	}
+
+	// Mark handlers as orphaned for formatting
+	IdentifyOrphanedHandlers(existingHandlers, requiredHandlers)
+	orphanedHandlers := FormatOrphanedHandlers(existingHandlers)
+
+	// If nothing changed, skip update
+	if len(newHandlers) == 0 && len(currentlyOrphanedHandlers) == 0 && len(orphanedHandlersRemoved) == 0 {
+		fmt.Printf("Resolver is up to date, skipping: %s\n", resolverFile)
+		return nil
+	}
+
+	// Generate code for new handlers only
+	newHandlersCode, err := g.generateNewHandlersCode(newHandlers)
+	if err != nil {
+		return fmt.Errorf("failed to generate new handlers: %w", err)
+	}
+
+	// Read the existing file
+	content, err := os.ReadFile(resolverFile)
+	if err != nil {
+		return fmt.Errorf("failed to read resolver file: %w", err)
+	}
+
+	// Remove any existing orphaned handlers section
+	contentStr := string(content)
+	if idx := strings.Index(contentStr, "\n// ==============================================================================\n// Orphaned Handlers\n"); idx != -1 {
+		contentStr = contentStr[:idx]
+	}
+
+	// Build final content: existing code + new handlers + orphaned section
+	var buf bytes.Buffer
+	buf.WriteString(contentStr)
+
+	if newHandlersCode != "" {
+		buf.WriteString("\n")
+		buf.WriteString(newHandlersCode)
+	}
+
+	if orphanedHandlers != "" {
+		buf.WriteString(orphanedHandlers)
+	}
+
+	// Format the final code
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to format resolver code: %w\n%s", err, buf.String())
+	}
+
+	if err := os.WriteFile(resolverFile, formatted, 0644); err != nil {
+		return fmt.Errorf("failed to write resolver file: %w", err)
+	}
+
+	// Build status message
+	var updates []string
+	if len(newHandlers) > 0 {
+		updates = append(updates, fmt.Sprintf("added %d new", len(newHandlers)))
+	}
+	if len(currentlyOrphanedHandlers) > 0 {
+		updates = append(updates, fmt.Sprintf("orphaned %d", len(currentlyOrphanedHandlers)))
+	}
+	if len(orphanedHandlersRemoved) > 0 {
+		updates = append(updates, fmt.Sprintf("restored %d from orphaned", len(orphanedHandlersRemoved)))
+	}
+
+	fmt.Printf("Updated resolver: %s: %s\n", strings.Join(updates, ", "), resolverFile)
+
 	return nil
+}
+
+func countOrphanedHandlers(orphanedCode string) int {
+	return strings.Count(orphanedCode, "// Orphaned:")
+}
+
+// extractOrphanedHandlerNames reads the orphaned section and returns list of handler names
+func extractOrphanedHandlerNames(resolverFile string) []string {
+	content, err := os.ReadFile(resolverFile)
+	if err != nil {
+		return nil
+	}
+
+	contentStr := string(content)
+	orphanedSectionStart := strings.Index(contentStr, "\n// ==============================================================================\n// Orphaned Handlers\n")
+	if orphanedSectionStart == -1 {
+		return nil
+	}
+
+	orphanedSection := contentStr[orphanedSectionStart:]
+	var names []string
+
+	// Find all "// Orphaned: <HandlerName>" lines
+	lines := strings.Split(orphanedSection, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "// Orphaned: ") {
+			name := strings.TrimPrefix(line, "// Orphaned: ")
+			names = append(names, name)
+		}
+	}
+
+	return names
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Generator) generateNewHandlersCode(handlerNames []string) (string, error) {
+	if len(handlerNames) == 0 {
+		return "", nil
+	}
+
+	// Parse the resolver template to extract individual handler templates
+	tmpl, err := template.ParseFS(templates, "templates/resolver.gotpl")
+	if err != nil {
+		return "", fmt.Errorf("failed to parse resolver template: %w", err)
+	}
+
+	// Build template data with only the new handlers
+	data := g.buildResolverTemplateData()
+
+	// Filter to only include new handlers
+	handlerSet := make(map[string]bool)
+	for _, name := range handlerNames {
+		handlerSet[name] = true
+	}
+
+	// Filter tools (HandlerName in data matches exactly now)
+	if tools, ok := data["Tools"].([]map[string]interface{}); ok {
+		filteredTools := []map[string]interface{}{}
+		for _, tool := range tools {
+			if handlerName, ok := tool["HandlerName"].(string); ok {
+				if handlerSet[handlerName] {
+					filteredTools = append(filteredTools, tool)
+				}
+			}
+		}
+		data["Tools"] = filteredTools
+	}
+
+	// Filter resources (HandlerName in data matches exactly now)
+	if resources, ok := data["Resources"].([]map[string]interface{}); ok {
+		filteredResources := []map[string]interface{}{}
+		for _, resource := range resources {
+			if handlerName, ok := resource["HandlerName"].(string); ok {
+				if handlerSet[handlerName] {
+					filteredResources = append(filteredResources, resource)
+				}
+			}
+		}
+		data["Resources"] = filteredResources
+		data["HasResources"] = len(filteredResources) > 0
+	}
+
+	// Filter prompts (HandlerName in data matches exactly now)
+	if prompts, ok := data["Prompts"].([]map[string]interface{}); ok {
+		filteredPrompts := []map[string]interface{}{}
+		for _, prompt := range prompts {
+			if handlerName, ok := prompt["HandlerName"].(string); ok {
+				if handlerSet[handlerName] {
+					filteredPrompts = append(filteredPrompts, prompt)
+				}
+			}
+		}
+		data["Prompts"] = filteredPrompts
+		data["HasPrompts"] = len(filteredPrompts) > 0
+	}
+
+	// Generate only handler methods (not the full file structure)
+	// NOTE: Must match the naming in resolver.gotpl template
+	handlersOnlyTmpl, err := template.New("handlers").Parse(`
+{{- range .Tools }}
+
+// {{ .HandlerName }} handles the {{ .Name }} tool
+// {{ .Description }}
+func (r *toolResolver) {{ .HandlerName }}(ctx context.Context, req *mcp.CallToolRequest{{ if .HasInputType }}, input *{{ .InputType }}{{ end }}) (*mcp.CallToolResult, map[string]any, error) {
+	// r.{{ $.ResolverType }} fields are available here
+	return nil, nil, fmt.Errorf("{{ .Name }} not implemented")
+}
+{{- end }}
+
+{{- range .Resources }}
+
+// {{ .HandlerName }} handles the {{ .Name }} resource
+// {{ .Description }}
+func (r *resourceResolver) {{ .HandlerName }}(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	// r.{{ $.ResolverType }} fields are available here
+	return nil, fmt.Errorf("{{ .Name }} not implemented")
+}
+{{- end }}
+
+{{- range .Prompts }}
+
+// {{ .HandlerName }} handles the {{ .Name }} prompt
+// {{ .Description }}
+func (r *promptResolver) {{ .HandlerName }}(ctx context.Context, req *mcp.GetPromptRequest{{ if .HasArgsType }}, args {{ .ArgsType }}{{ end }}) (*mcp.GetPromptResult, error) {
+	// r.{{ $.ResolverType }} fields are available here
+	return nil, fmt.Errorf("{{ .Name }} not implemented")
+}
+{{- end }}
+`)
+	if err != nil {
+		return "", fmt.Errorf("failed to create handlers template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := handlersOnlyTmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute handlers template: %w", err)
+	}
+
+	_ = tmpl // Keep using template for future enhancements
+	return buf.String(), nil
 }
 
 func (g *Generator) getRequiredHandlerNames() []string {

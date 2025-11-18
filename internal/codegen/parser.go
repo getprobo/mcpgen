@@ -45,6 +45,16 @@ func NewResolverParser(filePath string) (*ResolverParser, error) {
 func (p *ResolverParser) ExtractHandlers(resolverType string) (map[string]*HandlerInfo, error) {
 	handlers := make(map[string]*HandlerInfo)
 
+	// We now extract from toolResolver, promptResolver, and resourceResolver
+	allowedTypes := map[string]bool{
+		"toolResolver":     true,
+		"*toolResolver":    true,
+		"promptResolver":   true,
+		"*promptResolver":  true,
+		"resourceResolver": true,
+		"*resourceResolver": true,
+	}
+
 	for _, decl := range p.file.Decls {
 		funcDecl, ok := decl.(*ast.FuncDecl)
 		if !ok {
@@ -56,7 +66,7 @@ func (p *ResolverParser) ExtractHandlers(resolverType string) (map[string]*Handl
 		}
 
 		recvType := p.getReceiverType(funcDecl.Recv)
-		if recvType != resolverType && recvType != "*"+resolverType {
+		if !allowedTypes[recvType] {
 			continue
 		}
 

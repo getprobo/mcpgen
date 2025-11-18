@@ -21,14 +21,20 @@ import (
 
 // Server represents the MCP server
 type Server struct {
-	mcpServer *mcp.Server
-	resolver  *{{.ResolverType}}
+	mcpServer        *mcp.Server
+	resolver         *{{.ResolverType}}
+	toolResolver     *toolResolver
+	promptResolver   *promptResolver
+	resourceResolver *resourceResolver
 }
 
 // New creates a new MCP server instance
 func New(resolver *{{.ResolverType}}) *Server {
 	return &Server{
-		resolver: resolver,
+		resolver:         resolver,
+		toolResolver:     &toolResolver{resolver},
+		promptResolver:   &promptResolver{resolver},
+		resourceResolver: &resourceResolver{resolver},
 	}
 }
 
@@ -74,7 +80,7 @@ func (s *Server) registerToolHandlers() {
 			Description: "{{.Description}}",
 			InputSchema: {{.InputSchemaVar}},
 		},
-		s.resolver.{{.HandlerName}}Tool,
+		s.toolResolver.{{.HandlerName}},
 	)
 
 	{{- else}}
@@ -84,7 +90,7 @@ func (s *Server) registerToolHandlers() {
 			Name:        "{{.Name}}",
 			Description: "{{.Description}}",
 		},
-		s.resolver.{{.HandlerName}}Tool,
+		s.toolResolver.{{.HandlerName}},
 	)
 
 	{{- end}}
@@ -106,7 +112,7 @@ func (s *Server) registerResourceHandlers() {
 			MIMEType:    "{{.MimeType}}",
 			{{- end}}
 		},
-		s.resolver.{{.HandlerName}}Resource,
+		s.resourceResolver.{{.HandlerName}},
 	)
 
 	{{- else if .URITemplate}}
@@ -119,7 +125,7 @@ func (s *Server) registerResourceHandlers() {
 			MIMEType:    "{{.MimeType}}",
 			{{- end}}
 		},
-		s.resolver.{{.HandlerName}}Resource,
+		s.resourceResolver.{{.HandlerName}},
 	)
 
 	{{- end}}
@@ -149,7 +155,7 @@ func (s *Server) registerPromptHandlers() {
 			},
 			{{- end}}
 		},
-		s.resolver.{{.HandlerName}}Prompt,
+		s.promptResolver.{{.HandlerName}},
 	)
 	{{- end}}
 }

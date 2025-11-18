@@ -98,6 +98,17 @@ tools:
     inputSchema:
       $ref: "#/components/schemas/CalculateInput"
 
+  - name: calculate2
+    description: Perform basic arithmetic operations
+    readonly: false
+    destructive: false
+    idempotent: true
+    annotations:
+      category: math
+      complexity: low
+    inputSchema:
+      $ref: "#/components/schemas/TaskInput"
+
   # Tool 2: With complex typed input
   - name: create_task
     description: Create a new task

@@ -9,27 +9,17 @@
 # Path to MCP API specification
 spec: mcp.yaml
 
-# Code generation settings
-generate:
-  # Output directory for generated code
-  output: generated
+# Output directory for generated code
+output: generated
 
-  # Package name for generated code
-  package: generated
+# Resolver configuration
+resolver:
+  package: mcp_v1
+  filename: resolver.go
+  type: Resolver
+  preserve: true
 
-  # Resolver configuration
-  resolver:
-    filename: resolver.go
-    package: generated
-    type: Resolver
-    preserve: true
-
-  # Model generation settings
-  models:
-    filename: models.go
-    package: generated
-
-# Generation options
-options:
-  skipValidation: false
-  verboseComments: true
+# Model configuration
+model:
+  package: types
+  filename: types/types.go
