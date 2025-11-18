@@ -123,6 +123,43 @@ func (g *Generator) loadSchemas() error {
 				}
 			}
 		}
+
+		// Process output schema if present
+		if tool.OutputSchema != nil {
+			typeName := toPascalCase(tool.Name) + "Output"
+			handlerName := toHandlerName(tool.Name)
+			schemaVarName := handlerName + "ToolOutputSchema"
+
+			var resolvedSchema *config.Schema
+			if config.IsSchemaRef(tool.OutputSchema) {
+				if len(tool.OutputSchema.Ref) > 0 && tool.OutputSchema.Ref[0] == '#' {
+					resolved, err := g.spec.ResolveSchemaRef(tool.OutputSchema.Ref)
+					if err != nil {
+						return fmt.Errorf("failed to resolve output schema ref for tool %s: %w", tool.Name, err)
+					}
+					resolvedSchema = resolved
+					g.typeGen.AddSchema(typeName, resolvedSchema)
+				} else {
+					s, err := g.schemaLoader.Load(tool.OutputSchema.Ref)
+					if err != nil {
+						return fmt.Errorf("failed to load output schema for tool %s: %w", tool.Name, err)
+					}
+					resolvedSchema = s
+					g.typeGen.AddSchema(typeName, s)
+				}
+			} else {
+				resolvedSchema = tool.OutputSchema
+				g.typeGen.AddSchema(typeName, tool.OutputSchema)
+			}
+
+			// Add schema variable
+			if resolvedSchema != nil {
+				schemaJSON, err := json.Marshal(resolvedSchema)
+				if err == nil {
+					g.typeGen.AddSchemaVar(schemaVarName, string(schemaJSON))
+				}
+			}
+		}
 	}
 
 	for _, resource := range g.spec.Resources {
@@ -664,6 +701,28 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 			toolData["InputSchemaCode"] = schemaCode
 
 			hasTypedTools = true
+		}
+
+		// Add output type information and schema code
+		if tool.OutputSchema != nil {
+			outputTypeName := typePrefix + toPascalCase(tool.Name) + "Output"
+			toolData["OutputType"] = outputTypeName
+			toolData["HasOutputType"] = true
+
+			// Add schema variable name with proper prefix
+			schemaVarName := typePrefix + toHandlerName(tool.Name) + "ToolOutputSchema"
+			toolData["OutputSchemaVar"] = schemaVarName
+
+			resolvedSchema := tool.OutputSchema
+			if config.IsSchemaRef(tool.OutputSchema) && len(tool.OutputSchema.Ref) > 0 && tool.OutputSchema.Ref[0] == '#' {
+				resolved, err := g.spec.ResolveSchemaRef(tool.OutputSchema.Ref)
+				if err == nil {
+					resolvedSchema = resolved
+				}
+			}
+
+			schemaCode := g.generateSchemaCode(resolvedSchema)
+			toolData["OutputSchemaCode"] = schemaCode
 		}
 
 		tools = append(tools, toolData)

@@ -58,6 +58,7 @@ type Tool struct {
 	Name        string            `yaml:"name" json:"name"`
 	Description string            `yaml:"description,omitempty" json:"description,omitempty"`
 	InputSchema *Schema           `yaml:"inputSchema" json:"inputSchema"`
+	OutputSchema *Schema          `yaml:"outputSchema,omitempty" json:"outputSchema,omitempty"`
 	Readonly    bool              `yaml:"readonly,omitempty" json:"readonly,omitempty"`
 	Destructive bool              `yaml:"destructive,omitempty" json:"destructive,omitempty"`
 	Idempotent  bool              `yaml:"idempotent,omitempty" json:"idempotent,omitempty"`
