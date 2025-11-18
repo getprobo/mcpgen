@@ -210,6 +210,14 @@ func (g *TypeGenerator) generateArrayType(name string, s *schema.Schema, depth i
 }
 
 func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
+	if s.Ref != "" {
+		const prefix = "#/components/schemas/"
+		if len(s.Ref) > len(prefix) && s.Ref[:len(prefix)] == prefix {
+			schemaName := s.Ref[len(prefix):]
+			return "*" + toGoTypeName(schemaName), nil
+		}
+	}
+
 	if nullable, baseType := isNullableType(s); nullable {
 		goType, err := g.goType(baseType, hint)
 		if err != nil {
