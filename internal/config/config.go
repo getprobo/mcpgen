@@ -15,6 +15,7 @@ type Config struct {
 	Output   string         `yaml:"output" json:"output"`
 	Resolver ResolverConfig `yaml:"resolver" json:"resolver"`
 	Model    ModelConfig    `yaml:"model,omitempty" json:"model,omitempty"`
+	Models   ModelsConfig   `yaml:"models,omitempty" json:"models,omitempty"`
 }
 
 type ResolverConfig struct {
@@ -27,6 +28,18 @@ type ResolverConfig struct {
 type ModelConfig struct {
 	Package  string `yaml:"package,omitempty" json:"package,omitempty"`
 	Filename string `yaml:"filename,omitempty" json:"filename,omitempty"`
+}
+
+type ModelsConfig struct {
+	// Map schema names to custom Go types
+	// Example: User: github.com/myorg/models.User
+	Models map[string]TypeMapping `yaml:",inline,omitempty" json:",inline,omitempty"`
+}
+
+type TypeMapping struct {
+	// Model is the fully qualified Go type to use
+	// Example: github.com/google/uuid.UUID
+	Model string `yaml:"model" json:"model"`
 }
 
 type ServerInfo struct {

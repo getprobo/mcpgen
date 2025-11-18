@@ -1,0 +1,149 @@
+info:
+  title: custom-types-test
+  version: 1.0.0
+  description: Test all custom type mapping scenarios
+
+components:
+  schemas:
+    # Standard library types with x-go-type
+    Timestamp:
+      type: string
+      format: date-time
+      description: A timestamp
+      x-go-type: time.Time
+
+    Duration:
+      type: string
+      description: A duration
+      x-go-type: time.Duration
+
+    # External package types
+    UUID:
+      type: string
+      format: uuid
+      description: A UUID
+      x-go-type: github.com/google/uuid.UUID
+
+    Decimal:
+      type: string
+      description: A decimal number
+      x-go-type: github.com/shopspring/decimal.Decimal
+
+    # JSON raw message
+    Metadata:
+      type: object
+      description: Raw JSON metadata
+      x-go-type: json.RawMessage
+
+    # Regular enum (should be generated)
+    Status:
+      type: string
+      enum: [pending, in_progress, completed, cancelled]
+      description: Task status
+
+    # Regular object (should be generated)
+    Task:
+      type: object
+      description: A task
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        title:
+          type: string
+          description: Task title
+        status:
+          $ref: "#/components/schemas/Status"
+        createdAt:
+          $ref: "#/components/schemas/Timestamp"
+        updatedAt:
+          anyOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        duration:
+          $ref: "#/components/schemas/Duration"
+        metadata:
+          $ref: "#/components/schemas/Metadata"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Task tags
+        priority:
+          type: integer
+          description: Priority level
+      required: [id, title, status, createdAt]
+
+    # Object with all nullable custom types
+    OptionalFields:
+      type: object
+      properties:
+        optionalTimestamp:
+          anyOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        optionalUUID:
+          anyOf:
+            - $ref: "#/components/schemas/UUID"
+            - type: "null"
+        optionalDecimal:
+          anyOf:
+            - $ref: "#/components/schemas/Decimal"
+            - type: "null"
+
+    # Nested objects
+    Project:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        createdAt:
+          $ref: "#/components/schemas/Timestamp"
+      required: [id, name, createdAt]
+
+tools:
+  - name: create_task
+    description: Create a new task
+    inputSchema:
+      $ref: "#/components/schemas/Task"
+
+  - name: update_task
+    description: Update task fields
+    inputSchema:
+      $ref: "#/components/schemas/OptionalFields"
+
+  - name: create_project
+    description: Create a new project
+    inputSchema:
+      $ref: "#/components/schemas/Project"
+
+resources:
+  - uriTemplate: "task://{id}"
+    name: Task Resource
+    description: Get a task by ID
+    mimeType: application/json
+    schema:
+      $ref: "#/components/schemas/Task"
+
+  - uriTemplate: "project://{id}"
+    name: Project Resource
+    description: Get a project by ID
+    mimeType: application/json
+    schema:
+      $ref: "#/components/schemas/Project"
+
+prompts:
+  - name: task_summary
+    description: Generate a task summary
+    arguments:
+      - name: taskId
+        description: The task ID
+        required: true
+      - name: includeMetadata
+        description: Include metadata in summary
+        required: false

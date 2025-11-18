@@ -8,22 +8,34 @@ import (
 	"go.probo.inc/mcpgen/internal/schema"
 )
 
+type CustomTypeMapping struct {
+	GoType     string
+	ImportPath string
+	IsPointer  bool
+}
+
 type TypeGenerator struct {
-	schemas    map[string]*schema.Schema
-	types      map[string]string
-	enums      map[string]string
-	imports    map[string]bool
-	schemaVars map[string]string
+	schemas        map[string]*schema.Schema
+	types          map[string]string
+	enums          map[string]string
+	imports        map[string]bool
+	schemaVars     map[string]string
+	customMappings map[string]*CustomTypeMapping
 }
 
 func NewTypeGenerator() *TypeGenerator {
 	return &TypeGenerator{
-		schemas:    make(map[string]*schema.Schema),
-		types:      make(map[string]string),
-		enums:      make(map[string]string),
-		imports:    make(map[string]bool),
-		schemaVars: make(map[string]string),
+		schemas:        make(map[string]*schema.Schema),
+		types:          make(map[string]string),
+		enums:          make(map[string]string),
+		imports:        make(map[string]bool),
+		schemaVars:     make(map[string]string),
+		customMappings: make(map[string]*CustomTypeMapping),
 	}
+}
+
+func (g *TypeGenerator) AddCustomMapping(schemaName string, mapping *CustomTypeMapping) {
+	g.customMappings[schemaName] = mapping
 }
 
 func (g *TypeGenerator) AddSchema(name string, s *schema.Schema) {
@@ -43,6 +55,11 @@ func (g *TypeGenerator) Generate(packageName string) ([]byte, error) {
 
 	for name, s := range g.schemas {
 		typeName := toGoTypeName(name)
+
+		if _, hasCustomMapping := g.customMappings[name]; hasCustomMapping {
+			continue
+		}
+
 		typeCode, err := g.generateType(typeName, s, 0)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate type for %s: %w", name, err)
@@ -102,12 +119,34 @@ func (g *TypeGenerator) generateType(name string, s *schema.Schema, depth int) (
 		return "", fmt.Errorf("unsupported schema type: %q (no type and no properties for %s)", schemaType, name)
 	}
 
+	if len(s.Enum) > 0 {
+		return g.generateEnum(name, s)
+	}
+
 	switch schemaType {
 	case "object":
 		return g.generateStruct(name, s, depth)
 	case "array":
 		return g.generateArrayType(name, s, depth)
-	case "string", "number", "integer", "boolean":
+	case "string":
+		if depth == 0 {
+			return g.generatePrimitiveTypeAlias(name, s, "string")
+		}
+		return "", nil
+	case "number":
+		if depth == 0 {
+			return g.generatePrimitiveTypeAlias(name, s, "float64")
+		}
+		return "", nil
+	case "integer":
+		if depth == 0 {
+			return g.generatePrimitiveTypeAlias(name, s, "int")
+		}
+		return "", nil
+	case "boolean":
+		if depth == 0 {
+			return g.generatePrimitiveTypeAlias(name, s, "bool")
+		}
 		return "", nil
 	default:
 		if len(s.Properties) > 0 {
@@ -166,7 +205,7 @@ func isNullableType(s *schema.Schema) (bool, *schema.Schema) {
 			subType := schema.GetType(subSchema)
 			if subType == "null" {
 				nullIndex = i
-			} else if subType != "" || subSchema.Properties != nil {
+			} else if subType != "" || subSchema.Properties != nil || subSchema.Ref != "" {
 				typeIndex = i
 			}
 		}
@@ -198,6 +237,9 @@ func isNullableType(s *schema.Schema) (bool, *schema.Schema) {
 
 func (g *TypeGenerator) generateArrayType(name string, s *schema.Schema, depth int) (string, error) {
 	if s.Items == nil {
+		if depth == 0 {
+			return g.generatePrimitiveTypeAlias(name, s, "[]interface{}")
+		}
 		return "[]interface{}", nil
 	}
 
@@ -206,7 +248,13 @@ func (g *TypeGenerator) generateArrayType(name string, s *schema.Schema, depth i
 		return "", err
 	}
 
-	return fmt.Sprintf("[]%s", itemType), nil
+	arrayType := fmt.Sprintf("[]%s", itemType)
+
+	if depth == 0 {
+		return g.generatePrimitiveTypeAlias(name, s, arrayType)
+	}
+
+	return arrayType, nil
 }
 
 func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
@@ -214,6 +262,17 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 		const prefix = "#/components/schemas/"
 		if len(s.Ref) > len(prefix) && s.Ref[:len(prefix)] == prefix {
 			schemaName := s.Ref[len(prefix):]
+
+			if customMapping, ok := g.customMappings[schemaName]; ok {
+				if customMapping.ImportPath != "" {
+					g.imports[customMapping.ImportPath] = true
+				}
+				if customMapping.IsPointer {
+					return "*" + customMapping.GoType, nil
+				}
+				return customMapping.GoType, nil
+			}
+
 			return "*" + toGoTypeName(schemaName), nil
 		}
 	}
@@ -286,6 +345,19 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 		}
 		return "interface{}", nil
 	}
+}
+
+func (g *TypeGenerator) generatePrimitiveTypeAlias(name string, s *schema.Schema, goType string) (string, error) {
+	var buf strings.Builder
+
+	if s.Description != "" {
+		buf.WriteString(formatComment(s.Description, ""))
+	} else {
+		buf.WriteString(fmt.Sprintf("// %s represents a %s schema\n", name, goType))
+	}
+
+	buf.WriteString(fmt.Sprintf("type %s %s", name, goType))
+	return buf.String(), nil
 }
 
 func (g *TypeGenerator) generateEnum(enumTypeName string, s *schema.Schema) (string, error) {

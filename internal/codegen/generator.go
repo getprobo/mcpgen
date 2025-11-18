@@ -27,11 +27,18 @@ type Generator struct {
 }
 
 func New(cfg *config.Config, spec *config.MCPSpec) *Generator {
+	typeGen := NewTypeGenerator()
+
+	for schemaName, typeMapping := range cfg.Models.Models {
+		customMapping := parseTypeMapping(typeMapping.Model)
+		typeGen.AddCustomMapping(schemaName, customMapping)
+	}
+
 	return &Generator{
 		config:       cfg,
 		spec:         spec,
 		schemaLoader: schema.NewLoader("."),
-		typeGen:      NewTypeGenerator(),
+		typeGen:      typeGen,
 	}
 }
 
@@ -66,8 +73,16 @@ func (g *Generator) loadSchemas() error {
 			if err != nil {
 				return fmt.Errorf("failed to load schema %s: %w", name, err)
 			}
+			if goType := extractGoTypeAnnotation(s); goType != "" {
+				customMapping := parseTypeMapping(goType)
+				g.typeGen.AddCustomMapping(name, customMapping)
+			}
 			g.typeGen.AddSchema(name, s)
 		} else {
+			if goType := extractGoTypeAnnotation(schema); goType != "" {
+				customMapping := parseTypeMapping(goType)
+				g.typeGen.AddCustomMapping(name, customMapping)
+			}
 			g.typeGen.AddSchema(name, schema)
 		}
 	}
@@ -850,4 +865,48 @@ func extractURIParams(uriTemplate string) []map[string]interface{} {
 	}
 
 	return params
+}
+
+func extractGoTypeAnnotation(s *config.Schema) string {
+	if s == nil || s.Extra == nil {
+		return ""
+	}
+
+	if goType, ok := s.Extra["x-go-type"]; ok {
+		if goTypeStr, ok := goType.(string); ok {
+			return goTypeStr
+		}
+	}
+
+	return ""
+}
+
+func parseTypeMapping(modelStr string) *CustomTypeMapping {
+	mapping := &CustomTypeMapping{
+		GoType: modelStr,
+	}
+
+	if strings.Contains(modelStr, "/") {
+		parts := strings.Split(modelStr, ".")
+		if len(parts) >= 2 {
+			typeName := parts[len(parts)-1]
+			importPath := strings.TrimSuffix(modelStr, "."+typeName)
+			mapping.GoType = typeName
+			mapping.ImportPath = importPath
+
+			if strings.Contains(importPath, "/") {
+				pkgParts := strings.Split(importPath, "/")
+				pkgAlias := pkgParts[len(pkgParts)-1]
+				mapping.GoType = pkgAlias + "." + typeName
+			}
+		}
+	} else if strings.Contains(modelStr, ".") {
+		parts := strings.Split(modelStr, ".")
+		if len(parts) == 2 {
+			mapping.ImportPath = parts[0]
+			mapping.GoType = modelStr
+		}
+	}
+
+	return mapping
 }
