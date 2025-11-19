@@ -18,7 +18,7 @@ import (
 	{{- end}}
 	{{- end}}
 	{{- if .HasPrompts}}
-	"go.probo.inc/mcpgen/mcputil"
+	"go.probo.inc/mcpgen/mcp"
 	{{- end}}
 	{{- end}}
 )
@@ -133,7 +133,7 @@ func (s *Server) registerResourceHandlers() {
 
 func (s *Server) registerPromptHandlers() {
 	{{- range .Prompts}}
-	mcputil.AddPrompt(
+	mcp.AddPrompt(
 		s.mcpServer,
 		&mcp.Prompt{
 			Name:        "{{.Name}}",

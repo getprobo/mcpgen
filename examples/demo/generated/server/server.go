@@ -9,7 +9,7 @@ import (
 	mcp_v1 "demo/generated"
 	"demo/generated/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"go.probo.inc/mcpgen/mcputil"
+	mcputil "go.probo.inc/mcpgen/mcp"
 )
 
 type toolResolver struct{ *mcp_v1.Resolver }

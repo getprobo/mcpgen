@@ -45,7 +45,7 @@ func (g *TypeGenerator) AddSchema(name string, s *schema.Schema) {
 
 func (g *TypeGenerator) AddSchemaVar(name string, schemaJSON string) {
 	g.schemaVars[name] = schemaJSON
-	g.imports["go.probo.inc/mcpgen/mcputil"] = true
+	g.imports["go.probo.inc/mcpgen/mcp"] = true
 }
 
 func (g *TypeGenerator) Generate(packageName string) ([]byte, error) {
@@ -104,7 +104,7 @@ func (g *TypeGenerator) Generate(packageName string) ([]byte, error) {
 		sort.Strings(varNames)
 		for _, varName := range varNames {
 			schemaJSON := g.schemaVars[varName]
-			buf.WriteString(fmt.Sprintf("\t%s = mcputil.MustUnmarshalSchema(`%s`)\n", varName, schemaJSON))
+			buf.WriteString(fmt.Sprintf("\t%s = mcp.MustUnmarshalSchema(`%s`)\n", varName, schemaJSON))
 		}
 		buf.WriteString(")\n\n")
 	}
@@ -237,8 +237,8 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 
 		// Check if this field should be omittable (go.probo.inc/mcpgen/omittable annotation)
 		if isOmittable {
-			fieldType = fmt.Sprintf("mcputil.Omittable[%s]", fieldType)
-			g.imports["go.probo.inc/mcpgen/mcputil"] = true
+			fieldType = fmt.Sprintf("mcp.Omittable[%s]", fieldType)
+			g.imports["go.probo.inc/mcpgen/mcp"] = true
 		} else if !isRequired && !isPointerType(fieldType) {
 			// Make non-required fields pointers (unless already a pointer or using Omittable)
 			fieldType = "*" + fieldType

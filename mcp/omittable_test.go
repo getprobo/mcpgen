@@ -1,4 +1,4 @@
-package mcputil
+package mcp
 
 import (
 	"encoding/json"

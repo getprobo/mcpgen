@@ -63,7 +63,7 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 		"github.com/google/uuid",
 		"github.com/shopspring/decimal",
 		"json",
-		"go.probo.inc/mcpgen/mcputil",
+		"go.probo.inc/mcpgen/mcp",
 	}
 	for _, imp := range expectedImports {
 		if !containsImport(codeStr, imp) {
@@ -81,17 +81,17 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 		t.Error("Task.UpdatedAt should use *time.Time (nullable)")
 	}
 	// Check omittable fields
-	if !containsString(codeStr, "mcputil.Omittable[string]") {
-		t.Error("UpdateTaskInput.Title should use mcputil.Omittable[string]")
+	if !containsString(codeStr, "mcp.Omittable[string]") {
+		t.Error("UpdateTaskInput.Title should use mcp.Omittable[string]")
 	}
-	if !containsString(codeStr, "mcputil.Omittable[*Status]") {
-		t.Error("UpdateTaskInput.Status should use mcputil.Omittable[*Status]")
+	if !containsString(codeStr, "mcp.Omittable[*Status]") {
+		t.Error("UpdateTaskInput.Status should use mcp.Omittable[*Status]")
 	}
-	if !containsString(codeStr, "mcputil.Omittable[int64]") {
-		t.Error("UpdateTaskInput.Priority should use mcputil.Omittable[int64]")
+	if !containsString(codeStr, "mcp.Omittable[int64]") {
+		t.Error("UpdateTaskInput.Priority should use mcp.Omittable[int64]")
 	}
-	if !containsString(codeStr, "mcputil.Omittable[[]string]") {
-		t.Error("UpdateTaskInput.Tags should use mcputil.Omittable[[]string]")
+	if !containsString(codeStr, "mcp.Omittable[[]string]") {
+		t.Error("UpdateTaskInput.Tags should use mcp.Omittable[[]string]")
 	}
 	// Note: time.Duration test skipped - it's a type alias that may not appear in generated code
 }

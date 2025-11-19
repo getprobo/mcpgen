@@ -5,7 +5,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"go.probo.inc/mcpgen/mcputil"
+	mcputil "go.probo.inc/mcpgen/mcp"
 	"time"
 )
 

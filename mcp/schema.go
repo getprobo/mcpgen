@@ -1,4 +1,4 @@
-package mcputil
+package mcp
 
 import (
 	"context"
@@ -52,7 +52,7 @@ type PromptHandlerFor[Args any] func(context.Context, *mcp.GetPromptRequest, Arg
 //	    Topic string `json:"topic"`
 //	}
 //
-//	mcputil.AddPrompt(server, &mcp.Prompt{
+//	mcp.AddPrompt(server, &mcp.Prompt{
 //	    Name: "help",
 //	    Description: "Get help",
 //	}, resolver.HelpPrompt) // HelpPrompt receives typed HelpArgs
