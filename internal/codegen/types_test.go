@@ -519,7 +519,7 @@ func TestGenerateArrayType(t *testing.T) {
 			},
 			typeName:     "Unknown",
 			depth:        0,
-			wantContains: []string{"type Unknown []interface{}"},
+			wantContains: []string{"type Unknown []any"},
 			wantErr:      false,
 		},
 		{
@@ -529,7 +529,7 @@ func TestGenerateArrayType(t *testing.T) {
 			},
 			typeName: "Unknown",
 			depth:    1,
-			want:     "[]interface{}",
+			want:     "[]any",
 			wantErr:  false,
 		},
 	}
@@ -665,7 +665,7 @@ func TestGoTypeEdgeCases(t *testing.T) {
 				Type: "object",
 			},
 			hint:    "Metadata",
-			want:    "map[string]interface{}",
+			want:    "map[string]any",
 			wantErr: false,
 		},
 		{
@@ -676,7 +676,7 @@ func TestGoTypeEdgeCases(t *testing.T) {
 				Type: "null",
 			},
 			hint:    "Value",
-			want:    "interface{}",
+			want:    "any",
 			wantErr: false,
 		},
 		{

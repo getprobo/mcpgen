@@ -11,7 +11,7 @@ This is a comprehensive example demonstrating all mcpgen features.
 - **Status enum**: `pending`, `in_progress`, `completed`, `cancelled` (in TaskDetails)
 
 ### 2. Typed Inputs
-- All tool handlers receive typed structs instead of `map[string]interface{}`
+- All tool handlers receive typed structs instead of `map[string]any`
 - Direct field access without type assertions
 - IDE autocomplete for all fields
 - Compile-time type checking
@@ -97,7 +97,7 @@ type TaskInput struct {
 
 ### Typed Handlers (resolver.go)
 ```go
-// Before: func Calculate(ctx, req, args map[string]interface{})
+// Before: func Calculate(ctx, req, args map[string]any)
 // After:
 func (r *Resolver) Calculate(ctx context.Context, req *mcp.CallToolRequest,
     input *CalculateInput) (*mcp.CallToolResult, error) {

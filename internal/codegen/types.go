@@ -249,9 +249,9 @@ func isNullableType(s *schema.Schema) (bool, *schema.Schema) {
 func (g *TypeGenerator) generateArrayType(name string, s *schema.Schema, depth int) (string, error) {
 	if s.Items == nil {
 		if depth == 0 {
-			return g.generatePrimitiveTypeAlias(name, s, "[]interface{}")
+			return g.generatePrimitiveTypeAlias(name, s, "[]any")
 		}
-		return "[]interface{}", nil
+		return "[]any", nil
 	}
 
 	itemType, err := g.goType(s.Items, name+"Item")
@@ -320,7 +320,7 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 		return "bool", nil
 	case "array":
 		if s.Items == nil {
-			return "[]interface{}", nil
+			return "[]any", nil
 		}
 		itemType, err := g.goType(s.Items, hint+"Item")
 		if err != nil {
@@ -350,9 +350,9 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 			}
 			return typeName, nil
 		}
-		return "map[string]interface{}", nil
+		return "map[string]any", nil
 	case "null":
-		return "interface{}", nil
+		return "any", nil
 	default:
 		if len(s.Properties) > 0 {
 			typeName := toGoTypeName(hint)
@@ -365,7 +365,7 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 			}
 			return typeName, nil
 		}
-		return "interface{}", nil
+		return "any", nil
 	}
 }
 
