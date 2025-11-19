@@ -12,221 +12,547 @@ import (
 // Tool input schemas
 var (
 	Calculate2ToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
-	CreateTaskToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
-	CreateTaskToolOutputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"createdAt":{"type":"string","description":"Creation timestamp","format":"date-time"},"id":{"type":"string","description":"Task ID"},"priority":{"type":"string","description":"Priority level","enum":["low","medium","high","urgent"]},"status":{"type":"string","description":"Task status","enum":["pending","in_progress","completed","cancelled"]},"title":{"type":"string","description":"Task title"}}}`)
-	SearchToolInputSchema      = mcputil.MustUnmarshalSchema(`{"type":"object","required":["query"],"properties":{"filter":{"type":"string","description":"Filter results","enum":["all","active","completed"]},"limit":{"type":"integer","description":"Maximum number of results","default":10},"query":{"type":"string","description":"Search query"}}}`)
-	GetHistoryToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of history entries","default":10}}}`)
 	CalculateToolInputSchema   = mcputil.MustUnmarshalSchema(`{"type":"object","required":["operation","a","b"],"properties":{"a":{"type":"number","description":"First operand"},"b":{"type":"number","description":"Second operand"},"operation":{"type":"string","description":"The arithmetic operation to perform","enum":["add","subtract","multiply","divide"]}}}`)
 	CalculateToolOutputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"operation":{"type":"string","description":"The operation that was performed"},"value":{"type":"number","description":"The result value"}}}`)
+	CreateTaskToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
+	CreateTaskToolOutputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"createdAt":{"type":"string","description":"Creation timestamp","format":"date-time"},"id":{"type":"string","description":"Task ID"},"priority":{"type":"string","description":"Priority level","enum":["low","medium","high","urgent"]},"status":{"type":"string","description":"Task status","enum":["pending","in_progress","completed","cancelled"]},"title":{"type":"string","description":"Task title"}}}`)
+	GetHistoryToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of history entries","default":10}}}`)
+	SearchToolInputSchema      = mcputil.MustUnmarshalSchema(`{"type":"object","required":["query"],"properties":{"filter":{"type":"string","description":"Filter results","enum":["all","active","completed"]},"limit":{"type":"integer","description":"Maximum number of results","default":10},"query":{"type":"string","description":"Search query"}}}`)
 )
 
-// The arithmetic operation to perform
-type Operation string
+// Task priority level
+type Calculate2InputPriority string
 
 const (
-	OperationAdd      Operation = "add"
-	OperationSubtract Operation = "subtract"
-	OperationMultiply Operation = "multiply"
-	OperationDivide   Operation = "divide"
+	Calculate2InputPriorityLow    Calculate2InputPriority = "low"
+	Calculate2InputPriorityMedium Calculate2InputPriority = "medium"
+	Calculate2InputPriorityHigh   Calculate2InputPriority = "high"
+	Calculate2InputPriorityUrgent Calculate2InputPriority = "urgent"
 )
 
-// IsValid returns true if the Operation value is valid
-func (e Operation) IsValid() bool {
+// IsValid returns true if the Calculate2InputPriority value is valid
+func (e Calculate2InputPriority) IsValid() bool {
 	switch e {
-	case OperationAdd:
+	case Calculate2InputPriorityLow:
 		return true
-	case OperationSubtract:
+	case Calculate2InputPriorityMedium:
 		return true
-	case OperationMultiply:
+	case Calculate2InputPriorityHigh:
 		return true
-	case OperationDivide:
+	case Calculate2InputPriorityUrgent:
 		return true
 	}
 	return false
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (e *Operation) UnmarshalJSON(data []byte) error {
+func (e *Calculate2InputPriority) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	*e = Operation(s)
+	*e = Calculate2InputPriority(s)
 	if !e.IsValid() {
-		return fmt.Errorf("invalid Operation value: %q", s)
+		return fmt.Errorf("invalid Calculate2InputPriority value: %q", s)
 	}
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler
-func (e Operation) MarshalJSON() ([]byte, error) {
+func (e Calculate2InputPriority) MarshalJSON() ([]byte, error) {
 	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid Operation value: %q", string(e))
+		return nil, fmt.Errorf("invalid Calculate2InputPriority value: %q", string(e))
 	}
 	return json.Marshal(string(e))
 }
 
-// Task status
-type Status string
+// The arithmetic operation to perform
+type CalculateInputOperation string
 
 const (
-	StatusPending    Status = "pending"
-	StatusInProgress Status = "in_progress"
-	StatusCompleted  Status = "completed"
-	StatusCancelled  Status = "cancelled"
+	CalculateInputOperationAdd      CalculateInputOperation = "add"
+	CalculateInputOperationSubtract CalculateInputOperation = "subtract"
+	CalculateInputOperationMultiply CalculateInputOperation = "multiply"
+	CalculateInputOperationDivide   CalculateInputOperation = "divide"
 )
 
-// IsValid returns true if the Status value is valid
-func (e Status) IsValid() bool {
+// IsValid returns true if the CalculateInputOperation value is valid
+func (e CalculateInputOperation) IsValid() bool {
 	switch e {
-	case StatusPending:
+	case CalculateInputOperationAdd:
 		return true
-	case StatusInProgress:
+	case CalculateInputOperationSubtract:
 		return true
-	case StatusCompleted:
+	case CalculateInputOperationMultiply:
 		return true
-	case StatusCancelled:
+	case CalculateInputOperationDivide:
 		return true
 	}
 	return false
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (e *Status) UnmarshalJSON(data []byte) error {
+func (e *CalculateInputOperation) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	*e = Status(s)
+	*e = CalculateInputOperation(s)
 	if !e.IsValid() {
-		return fmt.Errorf("invalid Status value: %q", s)
+		return fmt.Errorf("invalid CalculateInputOperation value: %q", s)
 	}
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler
-func (e Status) MarshalJSON() ([]byte, error) {
+func (e CalculateInputOperation) MarshalJSON() ([]byte, error) {
 	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid Status value: %q", string(e))
+		return nil, fmt.Errorf("invalid CalculateInputOperation value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
+// Task priority level
+type CreateTaskInputPriority string
+
+const (
+	CreateTaskInputPriorityLow    CreateTaskInputPriority = "low"
+	CreateTaskInputPriorityMedium CreateTaskInputPriority = "medium"
+	CreateTaskInputPriorityHigh   CreateTaskInputPriority = "high"
+	CreateTaskInputPriorityUrgent CreateTaskInputPriority = "urgent"
+)
+
+// IsValid returns true if the CreateTaskInputPriority value is valid
+func (e CreateTaskInputPriority) IsValid() bool {
+	switch e {
+	case CreateTaskInputPriorityLow:
+		return true
+	case CreateTaskInputPriorityMedium:
+		return true
+	case CreateTaskInputPriorityHigh:
+		return true
+	case CreateTaskInputPriorityUrgent:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *CreateTaskInputPriority) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = CreateTaskInputPriority(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid CreateTaskInputPriority value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e CreateTaskInputPriority) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid CreateTaskInputPriority value: %q", string(e))
 	}
 	return json.Marshal(string(e))
 }
 
 // Priority level
-type Priority string
+type CreateTaskOutputPriority string
 
 const (
-	PriorityLow    Priority = "low"
-	PriorityMedium Priority = "medium"
-	PriorityHigh   Priority = "high"
-	PriorityUrgent Priority = "urgent"
+	CreateTaskOutputPriorityLow    CreateTaskOutputPriority = "low"
+	CreateTaskOutputPriorityMedium CreateTaskOutputPriority = "medium"
+	CreateTaskOutputPriorityHigh   CreateTaskOutputPriority = "high"
+	CreateTaskOutputPriorityUrgent CreateTaskOutputPriority = "urgent"
 )
 
-// IsValid returns true if the Priority value is valid
-func (e Priority) IsValid() bool {
+// IsValid returns true if the CreateTaskOutputPriority value is valid
+func (e CreateTaskOutputPriority) IsValid() bool {
 	switch e {
-	case PriorityLow:
+	case CreateTaskOutputPriorityLow:
 		return true
-	case PriorityMedium:
+	case CreateTaskOutputPriorityMedium:
 		return true
-	case PriorityHigh:
+	case CreateTaskOutputPriorityHigh:
 		return true
-	case PriorityUrgent:
+	case CreateTaskOutputPriorityUrgent:
 		return true
 	}
 	return false
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (e *Priority) UnmarshalJSON(data []byte) error {
+func (e *CreateTaskOutputPriority) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	*e = Priority(s)
+	*e = CreateTaskOutputPriority(s)
 	if !e.IsValid() {
-		return fmt.Errorf("invalid Priority value: %q", s)
+		return fmt.Errorf("invalid CreateTaskOutputPriority value: %q", s)
 	}
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler
-func (e Priority) MarshalJSON() ([]byte, error) {
+func (e CreateTaskOutputPriority) MarshalJSON() ([]byte, error) {
 	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid Priority value: %q", string(e))
+		return nil, fmt.Errorf("invalid CreateTaskOutputPriority value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
+// Task status
+type CreateTaskOutputStatus string
+
+const (
+	CreateTaskOutputStatusPending    CreateTaskOutputStatus = "pending"
+	CreateTaskOutputStatusInProgress CreateTaskOutputStatus = "in_progress"
+	CreateTaskOutputStatusCompleted  CreateTaskOutputStatus = "completed"
+	CreateTaskOutputStatusCancelled  CreateTaskOutputStatus = "cancelled"
+)
+
+// IsValid returns true if the CreateTaskOutputStatus value is valid
+func (e CreateTaskOutputStatus) IsValid() bool {
+	switch e {
+	case CreateTaskOutputStatusPending:
+		return true
+	case CreateTaskOutputStatusInProgress:
+		return true
+	case CreateTaskOutputStatusCompleted:
+		return true
+	case CreateTaskOutputStatusCancelled:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *CreateTaskOutputStatus) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = CreateTaskOutputStatus(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid CreateTaskOutputStatus value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e CreateTaskOutputStatus) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid CreateTaskOutputStatus value: %q", string(e))
 	}
 	return json.Marshal(string(e))
 }
 
 // Filter results
-type Filter string
+type SearchInputFilter string
 
 const (
-	FilterAll       Filter = "all"
-	FilterActive    Filter = "active"
-	FilterCompleted Filter = "completed"
+	SearchInputFilterAll       SearchInputFilter = "all"
+	SearchInputFilterActive    SearchInputFilter = "active"
+	SearchInputFilterCompleted SearchInputFilter = "completed"
 )
 
-// IsValid returns true if the Filter value is valid
-func (e Filter) IsValid() bool {
+// IsValid returns true if the SearchInputFilter value is valid
+func (e SearchInputFilter) IsValid() bool {
 	switch e {
-	case FilterAll:
+	case SearchInputFilterAll:
 		return true
-	case FilterActive:
+	case SearchInputFilterActive:
 		return true
-	case FilterCompleted:
+	case SearchInputFilterCompleted:
 		return true
 	}
 	return false
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (e *Filter) UnmarshalJSON(data []byte) error {
+func (e *SearchInputFilter) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	*e = Filter(s)
+	*e = SearchInputFilter(s)
 	if !e.IsValid() {
-		return fmt.Errorf("invalid Filter value: %q", s)
+		return fmt.Errorf("invalid SearchInputFilter value: %q", s)
 	}
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler
-func (e Filter) MarshalJSON() ([]byte, error) {
+func (e SearchInputFilter) MarshalJSON() ([]byte, error) {
 	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid Filter value: %q", string(e))
+		return nil, fmt.Errorf("invalid SearchInputFilter value: %q", string(e))
 	}
 	return json.Marshal(string(e))
 }
 
-// TaskDetailsContent represents the schema
-type TaskDetailsContent struct {
-	// Priority level
-	Priority Priority `json:"priority,omitempty"`
-	// Task status
-	Status Status `json:"status,omitempty"`
-	// Task title
-	Title string `json:"title,omitempty"`
-	// Creation timestamp
-	CreatedAt time.Time `json:"createdAt,omitempty"`
-	// Task ID
-	ID string `json:"id,omitempty"`
+// Priority level
+type TaskDetailsContentPriority string
+
+const (
+	TaskDetailsContentPriorityLow    TaskDetailsContentPriority = "low"
+	TaskDetailsContentPriorityMedium TaskDetailsContentPriority = "medium"
+	TaskDetailsContentPriorityHigh   TaskDetailsContentPriority = "high"
+	TaskDetailsContentPriorityUrgent TaskDetailsContentPriority = "urgent"
+)
+
+// IsValid returns true if the TaskDetailsContentPriority value is valid
+func (e TaskDetailsContentPriority) IsValid() bool {
+	switch e {
+	case TaskDetailsContentPriorityLow:
+		return true
+	case TaskDetailsContentPriorityMedium:
+		return true
+	case TaskDetailsContentPriorityHigh:
+		return true
+	case TaskDetailsContentPriorityUrgent:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *TaskDetailsContentPriority) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = TaskDetailsContentPriority(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid TaskDetailsContentPriority value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e TaskDetailsContentPriority) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid TaskDetailsContentPriority value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
+// Task status
+type TaskDetailsContentStatus string
+
+const (
+	TaskDetailsContentStatusPending    TaskDetailsContentStatus = "pending"
+	TaskDetailsContentStatusInProgress TaskDetailsContentStatus = "in_progress"
+	TaskDetailsContentStatusCompleted  TaskDetailsContentStatus = "completed"
+	TaskDetailsContentStatusCancelled  TaskDetailsContentStatus = "cancelled"
+)
+
+// IsValid returns true if the TaskDetailsContentStatus value is valid
+func (e TaskDetailsContentStatus) IsValid() bool {
+	switch e {
+	case TaskDetailsContentStatusPending:
+		return true
+	case TaskDetailsContentStatusInProgress:
+		return true
+	case TaskDetailsContentStatusCompleted:
+		return true
+	case TaskDetailsContentStatusCancelled:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *TaskDetailsContentStatus) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = TaskDetailsContentStatus(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid TaskDetailsContentStatus value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e TaskDetailsContentStatus) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid TaskDetailsContentStatus value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
+// Priority level
+type TaskDetailsPriority string
+
+const (
+	TaskDetailsPriorityLow    TaskDetailsPriority = "low"
+	TaskDetailsPriorityMedium TaskDetailsPriority = "medium"
+	TaskDetailsPriorityHigh   TaskDetailsPriority = "high"
+	TaskDetailsPriorityUrgent TaskDetailsPriority = "urgent"
+)
+
+// IsValid returns true if the TaskDetailsPriority value is valid
+func (e TaskDetailsPriority) IsValid() bool {
+	switch e {
+	case TaskDetailsPriorityLow:
+		return true
+	case TaskDetailsPriorityMedium:
+		return true
+	case TaskDetailsPriorityHigh:
+		return true
+	case TaskDetailsPriorityUrgent:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *TaskDetailsPriority) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = TaskDetailsPriority(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid TaskDetailsPriority value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e TaskDetailsPriority) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid TaskDetailsPriority value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
+// Task status
+type TaskDetailsStatus string
+
+const (
+	TaskDetailsStatusPending    TaskDetailsStatus = "pending"
+	TaskDetailsStatusInProgress TaskDetailsStatus = "in_progress"
+	TaskDetailsStatusCompleted  TaskDetailsStatus = "completed"
+	TaskDetailsStatusCancelled  TaskDetailsStatus = "cancelled"
+)
+
+// IsValid returns true if the TaskDetailsStatus value is valid
+func (e TaskDetailsStatus) IsValid() bool {
+	switch e {
+	case TaskDetailsStatusPending:
+		return true
+	case TaskDetailsStatusInProgress:
+		return true
+	case TaskDetailsStatusCompleted:
+		return true
+	case TaskDetailsStatusCancelled:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *TaskDetailsStatus) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = TaskDetailsStatus(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid TaskDetailsStatus value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e TaskDetailsStatus) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid TaskDetailsStatus value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
+// Task priority level
+type TaskInputPriority string
+
+const (
+	TaskInputPriorityLow    TaskInputPriority = "low"
+	TaskInputPriorityMedium TaskInputPriority = "medium"
+	TaskInputPriorityHigh   TaskInputPriority = "high"
+	TaskInputPriorityUrgent TaskInputPriority = "urgent"
+)
+
+// IsValid returns true if the TaskInputPriority value is valid
+func (e TaskInputPriority) IsValid() bool {
+	switch e {
+	case TaskInputPriorityLow:
+		return true
+	case TaskInputPriorityMedium:
+		return true
+	case TaskInputPriorityHigh:
+		return true
+	case TaskInputPriorityUrgent:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *TaskInputPriority) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = TaskInputPriority(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid TaskInputPriority value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e TaskInputPriority) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid TaskInputPriority value: %q", string(e))
+	}
+	return json.Marshal(string(e))
 }
 
 // Calculate2Input represents the schema
 type Calculate2Input struct {
-	// Task tags
-	Tags []string `json:"tags,omitempty"`
-	// Task title
-	Title string `json:"title"`
 	// Whether task is completed
 	Completed bool `json:"completed,omitempty"`
 	// Task deadline
 	Deadline time.Time `json:"deadline,omitempty"`
 	// Task priority level
-	Priority Priority `json:"priority"`
+	Priority Calculate2InputPriority `json:"priority"`
+	// Task tags
+	Tags []string `json:"tags,omitempty"`
+	// Task title
+	Title string `json:"title"`
+}
+
+// CalculateInput represents the schema
+type CalculateInput struct {
+	// First operand
+	A float64 `json:"a"`
+	// Second operand
+	B float64 `json:"b"`
+	// The arithmetic operation to perform
+	Operation CalculateInputOperation `json:"operation"`
+}
+
+// CalculateOutput represents the schema
+type CalculateOutput struct {
+	// The operation that was performed
+	Operation string `json:"operation,omitempty"`
+	// The result value
+	Value float64 `json:"value,omitempty"`
 }
 
 // CreateTaskInput represents the schema
@@ -236,11 +562,25 @@ type CreateTaskInput struct {
 	// Task deadline
 	Deadline time.Time `json:"deadline,omitempty"`
 	// Task priority level
-	Priority Priority `json:"priority"`
+	Priority CreateTaskInputPriority `json:"priority"`
 	// Task tags
 	Tags []string `json:"tags,omitempty"`
 	// Task title
 	Title string `json:"title"`
+}
+
+// CreateTaskOutput represents the schema
+type CreateTaskOutput struct {
+	// Creation timestamp
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	// Task ID
+	ID string `json:"id,omitempty"`
+	// Priority level
+	Priority CreateTaskOutputPriority `json:"priority,omitempty"`
+	// Task status
+	Status CreateTaskOutputStatus `json:"status,omitempty"`
+	// Task title
+	Title string `json:"title,omitempty"`
 }
 
 // GetHistoryInput represents the schema
@@ -257,28 +597,10 @@ type LastResultContent struct {
 	Value float64 `json:"value,omitempty"`
 }
 
-// TaskHelpArgs represents the schema
-type TaskHelpArgs struct {
-	// The help topic (tasks, priorities, etc)
-	Topic string `json:"topic,omitempty"`
-	// Whether to show detailed help
-	Detailed string `json:"detailed,omitempty"`
-}
-
 // MathHelpArgs represents the schema
 type MathHelpArgs struct {
 	// The operation to get help with
 	Operation string `json:"operation,omitempty"`
-}
-
-// CalculateInput represents the schema
-type CalculateInput struct {
-	// Second operand
-	B float64 `json:"b"`
-	// The arithmetic operation to perform
-	Operation Operation `json:"operation"`
-	// First operand
-	A float64 `json:"a"`
 }
 
 // Result represents the schema
@@ -289,18 +611,50 @@ type Result struct {
 	Value float64 `json:"value,omitempty"`
 }
 
+// SearchInput represents the schema
+type SearchInput struct {
+	// Filter results
+	Filter SearchInputFilter `json:"filter,omitempty"`
+	// Maximum number of results
+	Limit int64 `json:"limit,omitempty"`
+	// Search query
+	Query string `json:"query"`
+}
+
 // TaskDetails represents the schema
 type TaskDetails struct {
-	// Task status
-	Status Status `json:"status,omitempty"`
-	// Task title
-	Title string `json:"title,omitempty"`
 	// Creation timestamp
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	// Task ID
 	ID string `json:"id,omitempty"`
 	// Priority level
-	Priority Priority `json:"priority,omitempty"`
+	Priority TaskDetailsPriority `json:"priority,omitempty"`
+	// Task status
+	Status TaskDetailsStatus `json:"status,omitempty"`
+	// Task title
+	Title string `json:"title,omitempty"`
+}
+
+// TaskDetailsContent represents the schema
+type TaskDetailsContent struct {
+	// Creation timestamp
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	// Task ID
+	ID string `json:"id,omitempty"`
+	// Priority level
+	Priority TaskDetailsContentPriority `json:"priority,omitempty"`
+	// Task status
+	Status TaskDetailsContentStatus `json:"status,omitempty"`
+	// Task title
+	Title string `json:"title,omitempty"`
+}
+
+// TaskHelpArgs represents the schema
+type TaskHelpArgs struct {
+	// Whether to show detailed help
+	Detailed string `json:"detailed,omitempty"`
+	// The help topic (tasks, priorities, etc)
+	Topic string `json:"topic,omitempty"`
 }
 
 // TaskInput represents the schema
@@ -310,41 +664,9 @@ type TaskInput struct {
 	// Task deadline
 	Deadline time.Time `json:"deadline,omitempty"`
 	// Task priority level
-	Priority Priority `json:"priority"`
+	Priority TaskInputPriority `json:"priority"`
 	// Task tags
 	Tags []string `json:"tags,omitempty"`
 	// Task title
 	Title string `json:"title"`
-}
-
-// CalculateOutput represents the schema
-type CalculateOutput struct {
-	// The result value
-	Value float64 `json:"value,omitempty"`
-	// The operation that was performed
-	Operation string `json:"operation,omitempty"`
-}
-
-// CreateTaskOutput represents the schema
-type CreateTaskOutput struct {
-	// Task ID
-	ID string `json:"id,omitempty"`
-	// Priority level
-	Priority Priority `json:"priority,omitempty"`
-	// Task status
-	Status Status `json:"status,omitempty"`
-	// Task title
-	Title string `json:"title,omitempty"`
-	// Creation timestamp
-	CreatedAt time.Time `json:"createdAt,omitempty"`
-}
-
-// SearchInput represents the schema
-type SearchInput struct {
-	// Filter results
-	Filter Filter `json:"filter,omitempty"`
-	// Maximum number of results
-	Limit int64 `json:"limit,omitempty"`
-	// Search query
-	Query string `json:"query"`
 }

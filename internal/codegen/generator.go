@@ -8,6 +8,7 @@ import (
 	"go/format"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -29,7 +30,15 @@ type Generator struct {
 func New(cfg *config.Config, spec *config.MCPSpec) *Generator {
 	typeGen := NewTypeGenerator()
 
-	for schemaName, typeMapping := range cfg.Models.Models {
+	// Sort schema names for deterministic output
+	schemaNames := make([]string, 0, len(cfg.Models.Models))
+	for schemaName := range cfg.Models.Models {
+		schemaNames = append(schemaNames, schemaName)
+	}
+	sort.Strings(schemaNames)
+
+	for _, schemaName := range schemaNames {
+		typeMapping := cfg.Models.Models[schemaName]
 		customMapping := parseTypeMapping(typeMapping.Model)
 		typeGen.AddCustomMapping(schemaName, customMapping)
 	}
@@ -67,7 +76,15 @@ func (g *Generator) Generate() error {
 }
 
 func (g *Generator) loadSchemas() error {
-	for name, schema := range g.spec.Components.Schemas {
+	// Sort schema names for deterministic output
+	schemaNames := make([]string, 0, len(g.spec.Components.Schemas))
+	for name := range g.spec.Components.Schemas {
+		schemaNames = append(schemaNames, name)
+	}
+	sort.Strings(schemaNames)
+
+	for _, name := range schemaNames {
+		schema := g.spec.Components.Schemas[name]
 		if config.IsSchemaRef(schema) {
 			s, err := g.schemaLoader.Load(schema.Ref)
 			if err != nil {
@@ -263,7 +280,14 @@ func (g *Generator) resolveAllRefs(s *config.Schema) (*config.Schema, error) {
 
 	if len(s.Properties) > 0 {
 		result.Properties = make(map[string]*config.Schema)
-		for key, propSchema := range s.Properties {
+		// Sort property names for deterministic output
+		propNames := make([]string, 0, len(s.Properties))
+		for key := range s.Properties {
+			propNames = append(propNames, key)
+		}
+		sort.Strings(propNames)
+		for _, key := range propNames {
+			propSchema := s.Properties[key]
 			resolvedProp, err := g.resolveAllRefs(propSchema)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve property %s: %w", key, err)
@@ -331,7 +355,14 @@ func (g *Generator) resolveAllRefs(s *config.Schema) (*config.Schema, error) {
 
 	if len(s.PatternProperties) > 0 {
 		result.PatternProperties = make(map[string]*config.Schema)
-		for pattern, patternSchema := range s.PatternProperties {
+		// Sort pattern names for deterministic output
+		patterns := make([]string, 0, len(s.PatternProperties))
+		for pattern := range s.PatternProperties {
+			patterns = append(patterns, pattern)
+		}
+		sort.Strings(patterns)
+		for _, pattern := range patterns {
+			patternSchema := s.PatternProperties[pattern]
 			resolvedPattern, err := g.resolveAllRefs(patternSchema)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve patternProperties[%s]: %w", pattern, err)
