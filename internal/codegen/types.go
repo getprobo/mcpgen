@@ -484,27 +484,64 @@ func toGoTypeName(name string) string {
 	return strings.Join(parts, "")
 }
 
-func toGoFieldName(name string) string {
-	if name == "id" {
-		return "ID"
-	}
-	if name == "url" {
-		return "URL"
-	}
-	if name == "uri" {
-		return "URI"
-	}
-	if name == "api" {
-		return "API"
-	}
+var goAcronyms = map[string]bool{
+	"acl":   true,
+	"api":   true,
+	"ascii": true,
+	"cpu":   true,
+	"css":   true,
+	"dns":   true,
+	"eof":   true,
+	"guid":  true,
+	"html":  true,
+	"http":  true,
+	"https": true,
+	"id":    true,
+	"ip":    true,
+	"json":  true,
+	"jwt":   true,
+	"lhs":   true,
+	"qps":   true,
+	"ram":   true,
+	"rhs":   true,
+	"rpc":   true,
+	"sla":   true,
+	"smtp":  true,
+	"sql":   true,
+	"ssh":   true,
+	"tcp":   true,
+	"tls":   true,
+	"ttl":   true,
+	"udp":   true,
+	"ui":    true,
+	"uid":   true,
+	"uri":   true,
+	"url":   true,
+	"utf":   true,
+	"uuid":  true,
+	"vm":    true,
+	"xml":   true,
+}
 
+var goSpecialCase = map[string]string{
+	"oauth": "OAuth",
+}
+
+func toGoFieldName(name string) string {
 	parts := strings.FieldsFunc(name, func(r rune) bool {
 		return r == '_' || r == '-' || r == ' '
 	})
 
 	for i, part := range parts {
 		if len(part) > 0 {
-			parts[i] = strings.ToUpper(part[:1]) + part[1:]
+			lowerPart := strings.ToLower(part)
+			if specialCase, ok := goSpecialCase[lowerPart]; ok {
+				parts[i] = specialCase
+			} else if goAcronyms[lowerPart] {
+				parts[i] = strings.ToUpper(part)
+			} else {
+				parts[i] = strings.ToUpper(part[:1]) + part[1:]
+			}
 		}
 	}
 
