@@ -92,9 +92,19 @@ func (g *TypeGenerator) Generate(packageName string) ([]byte, error) {
 		buf.WriteString("\n\n")
 	}
 
+	written := make(map[string]bool)
+
 	for name := range g.schemas {
 		typeName := toGoTypeName(name)
 		if typeCode := g.types[typeName]; typeCode != "" {
+			buf.WriteString(typeCode)
+			buf.WriteString("\n\n")
+			written[typeName] = true
+		}
+	}
+
+	for typeName, typeCode := range g.types {
+		if !written[typeName] && typeCode != "" {
 			buf.WriteString(typeCode)
 			buf.WriteString("\n\n")
 		}
@@ -171,7 +181,8 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 
 	for propName, propSchema := range s.Properties {
 		fieldName := toGoFieldName(propName)
-		fieldType, err := g.goType(propSchema, fieldName)
+		hint := name + fieldName
+		fieldType, err := g.goType(propSchema, hint)
 		if err != nil {
 			return "", fmt.Errorf("failed to generate field %s: %w", propName, err)
 		}
@@ -319,6 +330,17 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 	case "object":
 		if s.Title != "" {
 			typeName := toGoTypeName(s.Title)
+			if g.types[typeName] == "" {
+				typeCode, err := g.generateStruct(typeName, s, 0)
+				if err != nil {
+					return "", err
+				}
+				g.types[typeName] = typeCode
+			}
+			return typeName, nil
+		}
+		if len(s.Properties) > 0 {
+			typeName := hint
 			if g.types[typeName] == "" {
 				typeCode, err := g.generateStruct(typeName, s, 0)
 				if err != nil {

@@ -644,6 +644,20 @@ func TestGoTypeEdgeCases(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "object with properties but no title",
+			setupGen: func(g *TypeGenerator) {
+			},
+			schema: &config.Schema{
+				Type: "object",
+				Properties: map[string]*config.Schema{
+					"snapshot_id": {Type: "string"},
+				},
+			},
+			hint:    "Filter",
+			want:    "Filter",
+			wantErr: false,
+		},
+		{
 			name: "object without title or properties",
 			setupGen: func(g *TypeGenerator) {
 			},
