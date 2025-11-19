@@ -5,7 +5,7 @@ info:
 
 components:
   schemas:
-    # These will be mapped via config, not x-go-type
+    # These will be mapped via config, not go.probo.inc/mcpgen/type
     Timestamp:
       type: string
       format: date-time

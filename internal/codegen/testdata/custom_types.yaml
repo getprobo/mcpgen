@@ -5,35 +5,35 @@ info:
 
 components:
   schemas:
-    # Standard library types with x-go-type
+    # Standard library types with go.probo.inc/mcpgen/type
     Timestamp:
       type: string
       format: date-time
       description: A timestamp
-      x-go-type: time.Time
+      go.probo.inc/mcpgen/type: time.Time
 
     Duration:
       type: string
       description: A duration
-      x-go-type: time.Duration
+      go.probo.inc/mcpgen/type: time.Duration
 
     # External package types
     UUID:
       type: string
       format: uuid
       description: A UUID
-      x-go-type: github.com/google/uuid.UUID
+      go.probo.inc/mcpgen/type: github.com/google/uuid.UUID
 
     Decimal:
       type: string
       description: A decimal number
-      x-go-type: github.com/shopspring/decimal.Decimal
+      go.probo.inc/mcpgen/type: github.com/shopspring/decimal.Decimal
 
     # JSON raw message
     Metadata:
       type: object
       description: Raw JSON metadata
-      x-go-type: json.RawMessage
+      go.probo.inc/mcpgen/type: json.RawMessage
 
     # Regular enum (should be generated)
     Status:
@@ -117,21 +117,21 @@ components:
         title:
           type: string
           description: New title (omit to keep unchanged, null to clear)
-          x-go-omittable: true
+          go.probo.inc/mcpgen/omittable: true
         status:
           $ref: "#/components/schemas/Status"
           description: New status (omit to keep unchanged)
-          x-go-omittable: true
+          go.probo.inc/mcpgen/omittable: true
         priority:
           type: integer
           description: New priority (omit to keep unchanged, null to clear)
-          x-go-omittable: true
+          go.probo.inc/mcpgen/omittable: true
         tags:
           type: array
           items:
             type: string
           description: New tags (omit to keep unchanged, null to clear)
-          x-go-omittable: true
+          go.probo.inc/mcpgen/omittable: true
       required: [id]
 
 tools:

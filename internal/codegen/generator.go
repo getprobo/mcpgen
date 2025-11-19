@@ -1091,7 +1091,7 @@ func extractGoTypeAnnotation(s *config.Schema) string {
 		return ""
 	}
 
-	if goType, ok := s.Extra["x-go-type"]; ok {
+	if goType, ok := s.Extra["go.probo.inc/mcpgen/type"]; ok {
 		if goTypeStr, ok := goType.(string); ok {
 			return goTypeStr
 		}

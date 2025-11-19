@@ -294,7 +294,7 @@ func TestLoadSchemas(t *testing.T) {
 	customMappings := []string{"Timestamp", "UUID", "Decimal", "Metadata", "Duration"}
 	for _, schemaName := range customMappings {
 		if _, exists := gen.typeGen.customMappings[schemaName]; !exists {
-			t.Errorf("Expected custom mapping for %q from x-go-type annotation", schemaName)
+			t.Errorf("Expected custom mapping for %q from go.probo.inc/mcpgen/type annotation", schemaName)
 		}
 	}
 }
@@ -560,10 +560,10 @@ func TestGenerateModels(t *testing.T) {
 	}
 
 	if containsString(codeStr, "type Timestamp") {
-		t.Error("Should not generate Timestamp type (has x-go-type)")
+		t.Error("Should not generate Timestamp type (has go.probo.inc/mcpgen/type)")
 	}
 	if containsString(codeStr, "type UUID") {
-		t.Error("Should not generate UUID type (has x-go-type)")
+		t.Error("Should not generate UUID type (has go.probo.inc/mcpgen/type)")
 	}
 
 	if !containsString(codeStr, "type Task struct") {
@@ -832,7 +832,7 @@ func TestResolveAllRefs(t *testing.T) {
 					Type:   "string",
 					Format: "date-time",
 					Extra: map[string]interface{}{
-						"x-go-type":      "time.Time",
+						"go.probo.inc/mcpgen/type":      "time.Time",
 						"x-custom-field": "value",
 					},
 				},
@@ -1192,7 +1192,7 @@ func TestResolveAllRefsRemovesExtensions(t *testing.T) {
 				"TypeWithExtensions": {
 					Type:   "object",
 					Extra: map[string]interface{}{
-						"x-go-type": "custom.Type",
+						"go.probo.inc/mcpgen/type": "custom.Type",
 						"x-custom":  "value",
 					},
 					Properties: map[string]*config.Schema{

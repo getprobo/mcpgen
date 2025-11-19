@@ -76,11 +76,11 @@ func TestExtractGoTypeAnnotation(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "schema with x-go-type annotation",
+			name: "schema with go.probo.inc/mcpgen/type annotation",
 			schema: &config.Schema{
 				Type: "string",
 				Extra: map[string]any{
-					"x-go-type": "time.Time",
+					"go.probo.inc/mcpgen/type": "time.Time",
 				},
 			},
 			want: "time.Time",
@@ -96,11 +96,11 @@ func TestExtractGoTypeAnnotation(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "schema with non-string x-go-type",
+			name: "schema with non-string go.probo.inc/mcpgen/type",
 			schema: &config.Schema{
 				Type: "string",
 				Extra: map[string]any{
-					"x-go-type": 123,
+					"go.probo.inc/mcpgen/type": 123,
 				},
 			},
 			want: "",

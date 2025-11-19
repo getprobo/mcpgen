@@ -27,7 +27,7 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 			Type:     "Resolver",
 			Preserve: false,
 		},
-		// No custom models in config - using x-go-type annotations
+		// No custom models in config - using go.probo.inc/mcpgen/type annotations
 		Models: config.ModelsConfig{
 			Models: map[string]config.TypeMapping{},
 		},
@@ -47,7 +47,7 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 	customTypes := []string{"Timestamp", "UUID", "Decimal", "Metadata", "Duration"}
 	for _, typeName := range customTypes {
 		if containsTypeDefinition(codeStr, "type "+typeName+" ") {
-			t.Errorf("Should not generate type %q (it has x-go-type annotation)", typeName)
+			t.Errorf("Should not generate type %q (it has go.probo.inc/mcpgen/type annotation)", typeName)
 		}
 	}
 
