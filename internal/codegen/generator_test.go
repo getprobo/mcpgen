@@ -809,6 +809,431 @@ func TestGenerateNewHandlersCode(t *testing.T) {
 	}
 }
 
+func TestResolveAllRefs(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{
+				"SimpleType": {
+					Type:   "string",
+					Format: "uuid",
+				},
+				"ComplexType": {
+					Type: "object",
+					Properties: map[string]*config.Schema{
+						"id": {
+							Ref: "#/components/schemas/SimpleType",
+						},
+						"name": {
+							Type: "string",
+						},
+					},
+				},
+				"WithExtensions": {
+					Type:   "string",
+					Format: "date-time",
+					Extra: map[string]interface{}{
+						"x-go-type":      "time.Time",
+						"x-custom-field": "value",
+					},
+				},
+				"NestedRef": {
+					Type: "object",
+					Properties: map[string]*config.Schema{
+						"complex": {
+							Ref: "#/components/schemas/ComplexType",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	tests := []struct {
+		name           string
+		schema         *config.Schema
+		wantType       string
+		wantNoRef      bool
+		wantNoExtras   bool
+		checkProperty  string
+		propertyType   string
+	}{
+		{
+			name:         "nil schema",
+			schema:       nil,
+			wantType:     "",
+			wantNoRef:    true,
+		},
+		{
+			name: "simple ref resolution",
+			schema: &config.Schema{
+				Ref: "#/components/schemas/SimpleType",
+			},
+			wantType:  "string",
+			wantNoRef: true,
+		},
+		{
+			name: "nested ref in properties",
+			schema: &config.Schema{
+				Ref: "#/components/schemas/ComplexType",
+			},
+			wantType:      "object",
+			wantNoRef:     true,
+			checkProperty: "id",
+			propertyType:  "string",
+		},
+		{
+			name: "deep nested refs",
+			schema: &config.Schema{
+				Ref: "#/components/schemas/NestedRef",
+			},
+			wantType:      "object",
+			wantNoRef:     true,
+			checkProperty: "complex",
+			propertyType:  "object",
+		},
+		{
+			name: "ref in array items",
+			schema: &config.Schema{
+				Type: "array",
+				Items: &config.Schema{
+					Ref: "#/components/schemas/SimpleType",
+				},
+			},
+			wantType:  "array",
+			wantNoRef: true,
+		},
+		{
+			name: "ref in anyOf",
+			schema: &config.Schema{
+				AnyOf: []*config.Schema{
+					{
+						Ref: "#/components/schemas/SimpleType",
+					},
+					{
+						Type: "null",
+					},
+				},
+			},
+			wantNoRef: true,
+		},
+		{
+			name: "removes x-* extensions",
+			schema: &config.Schema{
+				Ref: "#/components/schemas/WithExtensions",
+			},
+			wantType:     "string",
+			wantNoRef:    true,
+			wantNoExtras: true,
+		},
+		{
+			name: "no ref to resolve",
+			schema: &config.Schema{
+				Type: "string",
+			},
+			wantType:  "string",
+			wantNoRef: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := gen.resolveAllRefs(tt.schema)
+			if err != nil {
+				t.Fatalf("resolveAllRefs() error = %v", err)
+			}
+
+			if tt.schema == nil {
+				if got != nil {
+					t.Errorf("resolveAllRefs(nil) should return nil")
+				}
+				return
+			}
+
+			if tt.wantType != "" && got.Type != tt.wantType {
+				t.Errorf("Type = %q, want %q", got.Type, tt.wantType)
+			}
+
+			if tt.wantNoRef && got.Ref != "" {
+				t.Errorf("Ref should be empty, got %q", got.Ref)
+			}
+
+			if tt.wantNoExtras && got.Extra != nil && len(got.Extra) > 0 {
+				t.Errorf("Extra fields should be removed, got %v", got.Extra)
+			}
+
+			if tt.checkProperty != "" {
+				if got.Properties == nil {
+					t.Error("Properties should not be nil")
+					return
+				}
+				prop, ok := got.Properties[tt.checkProperty]
+				if !ok {
+					t.Errorf("Property %q should exist", tt.checkProperty)
+					return
+				}
+				if prop.Type != tt.propertyType {
+					t.Errorf("Property %q type = %q, want %q", tt.checkProperty, prop.Type, tt.propertyType)
+				}
+				if prop.Ref != "" {
+					t.Errorf("Property %q should have ref resolved, got %q", tt.checkProperty, prop.Ref)
+				}
+			}
+
+			if tt.schema.Type == "array" && got.Items != nil {
+				if got.Items.Ref != "" {
+					t.Errorf("Array items should have ref resolved, got %q", got.Items.Ref)
+				}
+			}
+
+			if len(tt.schema.AnyOf) > 0 {
+				for i, schema := range got.AnyOf {
+					if schema.Ref != "" {
+						t.Errorf("anyOf[%d] should have ref resolved, got %q", i, schema.Ref)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestResolveAllRefsInAllOf(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{
+				"Base": {
+					Type: "object",
+					Properties: map[string]*config.Schema{
+						"id": {Type: "string"},
+					},
+				},
+				"Extended": {
+					Type: "object",
+					Properties: map[string]*config.Schema{
+						"name": {Type: "string"},
+					},
+				},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	schema := &config.Schema{
+		AllOf: []*config.Schema{
+			{Ref: "#/components/schemas/Base"},
+			{Ref: "#/components/schemas/Extended"},
+		},
+	}
+
+	got, err := gen.resolveAllRefs(schema)
+	if err != nil {
+		t.Fatalf("resolveAllRefs() error = %v", err)
+	}
+
+	if len(got.AllOf) != 2 {
+		t.Errorf("AllOf length = %d, want 2", len(got.AllOf))
+	}
+
+	for i, s := range got.AllOf {
+		if s.Ref != "" {
+			t.Errorf("allOf[%d] should have ref resolved, got %q", i, s.Ref)
+		}
+		if s.Type != "object" {
+			t.Errorf("allOf[%d] type = %q, want object", i, s.Type)
+		}
+	}
+}
+
+func TestResolveAllRefsInOneOf(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{
+				"Option1": {Type: "string"},
+				"Option2": {Type: "number"},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	schema := &config.Schema{
+		OneOf: []*config.Schema{
+			{Ref: "#/components/schemas/Option1"},
+			{Ref: "#/components/schemas/Option2"},
+		},
+	}
+
+	got, err := gen.resolveAllRefs(schema)
+	if err != nil {
+		t.Fatalf("resolveAllRefs() error = %v", err)
+	}
+
+	if len(got.OneOf) != 2 {
+		t.Errorf("OneOf length = %d, want 2", len(got.OneOf))
+	}
+
+	for i, s := range got.OneOf {
+		if s.Ref != "" {
+			t.Errorf("oneOf[%d] should have ref resolved, got %q", i, s.Ref)
+		}
+	}
+}
+
+func TestResolveAllRefsInAdditionalProperties(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{
+				"Value": {Type: "string"},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	schema := &config.Schema{
+		Type: "object",
+		AdditionalProperties: &config.Schema{
+			Ref: "#/components/schemas/Value",
+		},
+	}
+
+	got, err := gen.resolveAllRefs(schema)
+	if err != nil {
+		t.Fatalf("resolveAllRefs() error = %v", err)
+	}
+
+	if got.AdditionalProperties == nil {
+		t.Fatal("AdditionalProperties should not be nil")
+	}
+
+	if got.AdditionalProperties.Ref != "" {
+		t.Errorf("AdditionalProperties should have ref resolved, got %q", got.AdditionalProperties.Ref)
+	}
+
+	if got.AdditionalProperties.Type != "string" {
+		t.Errorf("AdditionalProperties type = %q, want string", got.AdditionalProperties.Type)
+	}
+}
+
+func TestResolveAllRefsInPatternProperties(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{
+				"Pattern": {Type: "number"},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	schema := &config.Schema{
+		Type: "object",
+		PatternProperties: map[string]*config.Schema{
+			"^[a-z]+$": {
+				Ref: "#/components/schemas/Pattern",
+			},
+		},
+	}
+
+	got, err := gen.resolveAllRefs(schema)
+	if err != nil {
+		t.Fatalf("resolveAllRefs() error = %v", err)
+	}
+
+	if got.PatternProperties == nil {
+		t.Fatal("PatternProperties should not be nil")
+	}
+
+	pattern, ok := got.PatternProperties["^[a-z]+$"]
+	if !ok {
+		t.Fatal("Pattern should exist")
+	}
+
+	if pattern.Ref != "" {
+		t.Errorf("Pattern should have ref resolved, got %q", pattern.Ref)
+	}
+
+	if pattern.Type != "number" {
+		t.Errorf("Pattern type = %q, want number", pattern.Type)
+	}
+}
+
+func TestResolveAllRefsError(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	schema := &config.Schema{
+		Ref: "#/components/schemas/NonExistent",
+	}
+
+	_, err := gen.resolveAllRefs(schema)
+	if err == nil {
+		t.Error("resolveAllRefs() should return error for non-existent ref")
+	}
+}
+
+func TestResolveAllRefsRemovesExtensions(t *testing.T) {
+	spec := &config.MCPSpec{
+		Components: config.Components{
+			Schemas: map[string]*config.Schema{
+				"TypeWithExtensions": {
+					Type:   "object",
+					Extra: map[string]interface{}{
+						"x-go-type": "custom.Type",
+						"x-custom":  "value",
+					},
+					Properties: map[string]*config.Schema{
+						"field": {
+							Type: "string",
+							Extra: map[string]interface{}{
+								"x-validation": "required",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cfg := &config.Config{}
+	gen := New(cfg, spec)
+
+	schema := &config.Schema{
+		Ref: "#/components/schemas/TypeWithExtensions",
+	}
+
+	got, err := gen.resolveAllRefs(schema)
+	if err != nil {
+		t.Fatalf("resolveAllRefs() error = %v", err)
+	}
+
+	if got.Extra != nil && len(got.Extra) > 0 {
+		t.Errorf("Extra should be removed from resolved schema, got %v", got.Extra)
+	}
+
+	if got.Properties == nil {
+		t.Fatal("Properties should not be nil")
+	}
+
+	field := got.Properties["field"]
+	if field.Extra != nil && len(field.Extra) > 0 {
+		t.Errorf("Extra should be removed from property, got %v", field.Extra)
+	}
+}
+
 func TestUpdateResolverIncremental(t *testing.T) {
 	specPath := filepath.Join("testdata", "config_based_types.yaml")
 	spec, err := config.LoadMCPSpec(specPath)

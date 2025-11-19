@@ -115,9 +115,12 @@ func (g *Generator) loadSchemas() error {
 				g.typeGen.AddSchema(typeName, tool.InputSchema)
 			}
 
-			// Add schema variable
 			if resolvedSchema != nil {
-				schemaJSON, err := json.Marshal(resolvedSchema)
+				fullyResolvedSchema, err := g.resolveAllRefs(resolvedSchema)
+				if err != nil {
+					return fmt.Errorf("failed to fully resolve schema for tool %s: %w", tool.Name, err)
+				}
+				schemaJSON, err := json.Marshal(fullyResolvedSchema)
 				if err == nil {
 					g.typeGen.AddSchemaVar(schemaVarName, string(schemaJSON))
 				}
@@ -152,9 +155,12 @@ func (g *Generator) loadSchemas() error {
 				g.typeGen.AddSchema(typeName, tool.OutputSchema)
 			}
 
-			// Add schema variable
 			if resolvedSchema != nil {
-				schemaJSON, err := json.Marshal(resolvedSchema)
+				fullyResolvedSchema, err := g.resolveAllRefs(resolvedSchema)
+				if err != nil {
+					return fmt.Errorf("failed to fully resolve schema for tool %s: %w", tool.Name, err)
+				}
+				schemaJSON, err := json.Marshal(fullyResolvedSchema)
 				if err == nil {
 					g.typeGen.AddSchemaVar(schemaVarName, string(schemaJSON))
 				}
@@ -212,6 +218,129 @@ func (g *Generator) loadSchemas() error {
 	}
 
 	return nil
+}
+
+func (g *Generator) resolveAllRefs(s *config.Schema) (*config.Schema, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	if config.IsSchemaRef(s) {
+		if len(s.Ref) > 0 && s.Ref[0] == '#' {
+			resolved, err := g.spec.ResolveSchemaRef(s.Ref)
+			if err != nil {
+				return nil, err
+			}
+			return g.resolveAllRefs(resolved)
+		}
+		return s, nil
+	}
+
+	result := &config.Schema{
+		Type:             s.Type,
+		Format:           s.Format,
+		Description:      s.Description,
+		Default:          s.Default,
+		Enum:             s.Enum,
+		Title:            s.Title,
+		Required:         s.Required,
+		ReadOnly:         s.ReadOnly,
+		WriteOnly:        s.WriteOnly,
+		Deprecated:       s.Deprecated,
+		Minimum:          s.Minimum,
+		Maximum:          s.Maximum,
+		ExclusiveMinimum: s.ExclusiveMinimum,
+		ExclusiveMaximum: s.ExclusiveMaximum,
+		MinLength:        s.MinLength,
+		MaxLength:        s.MaxLength,
+		Pattern:          s.Pattern,
+		MinItems:         s.MinItems,
+		MaxItems:         s.MaxItems,
+		UniqueItems:      s.UniqueItems,
+		MinProperties:    s.MinProperties,
+		MaxProperties:    s.MaxProperties,
+	}
+
+	if len(s.Properties) > 0 {
+		result.Properties = make(map[string]*config.Schema)
+		for key, propSchema := range s.Properties {
+			resolvedProp, err := g.resolveAllRefs(propSchema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve property %s: %w", key, err)
+			}
+			result.Properties[key] = resolvedProp
+		}
+	}
+
+	if s.Items != nil {
+		resolvedItems, err := g.resolveAllRefs(s.Items)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve items: %w", err)
+		}
+		result.Items = resolvedItems
+	}
+
+	if len(s.AnyOf) > 0 {
+		result.AnyOf = make([]*config.Schema, len(s.AnyOf))
+		for i, schema := range s.AnyOf {
+			resolvedSchema, err := g.resolveAllRefs(schema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve anyOf[%d]: %w", i, err)
+			}
+			result.AnyOf[i] = resolvedSchema
+		}
+	}
+
+	if len(s.AllOf) > 0 {
+		result.AllOf = make([]*config.Schema, len(s.AllOf))
+		for i, schema := range s.AllOf {
+			resolvedSchema, err := g.resolveAllRefs(schema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve allOf[%d]: %w", i, err)
+			}
+			result.AllOf[i] = resolvedSchema
+		}
+	}
+
+	if len(s.OneOf) > 0 {
+		result.OneOf = make([]*config.Schema, len(s.OneOf))
+		for i, schema := range s.OneOf {
+			resolvedSchema, err := g.resolveAllRefs(schema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve oneOf[%d]: %w", i, err)
+			}
+			result.OneOf[i] = resolvedSchema
+		}
+	}
+
+	if s.Not != nil {
+		resolvedNot, err := g.resolveAllRefs(s.Not)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve not: %w", err)
+		}
+		result.Not = resolvedNot
+	}
+
+	if s.AdditionalProperties != nil {
+		resolvedAdditional, err := g.resolveAllRefs(s.AdditionalProperties)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve additionalProperties: %w", err)
+		}
+		result.AdditionalProperties = resolvedAdditional
+	}
+
+	if len(s.PatternProperties) > 0 {
+		result.PatternProperties = make(map[string]*config.Schema)
+		for pattern, patternSchema := range s.PatternProperties {
+			resolvedPattern, err := g.resolveAllRefs(patternSchema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve patternProperties[%s]: %w", pattern, err)
+			}
+			result.PatternProperties[pattern] = resolvedPattern
+		}
+	}
+
+	return result, nil
 }
 
 func toPascalCase(s string) string {
