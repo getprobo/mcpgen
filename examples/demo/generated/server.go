@@ -8,7 +8,7 @@ import (
 
 	"demo/generated/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"go.probo.inc/mcpgen/pkg/mcputil"
+	"go.probo.inc/mcpgen/mcputil"
 )
 
 // Server represents the MCP server

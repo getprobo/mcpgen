@@ -5,7 +5,7 @@ package test
 import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"go.probo.inc/mcpgen/pkg/mcputil"
+	"go.probo.inc/mcpgen/mcputil"
 	"json"
 	"time"
 )

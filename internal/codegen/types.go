@@ -44,7 +44,7 @@ func (g *TypeGenerator) AddSchema(name string, s *schema.Schema) {
 
 func (g *TypeGenerator) AddSchemaVar(name string, schemaJSON string) {
 	g.schemaVars[name] = schemaJSON
-	g.imports["go.probo.inc/mcpgen/pkg/mcputil"] = true
+	g.imports["go.probo.inc/mcpgen/mcputil"] = true
 }
 
 func (g *TypeGenerator) Generate(packageName string) ([]byte, error) {

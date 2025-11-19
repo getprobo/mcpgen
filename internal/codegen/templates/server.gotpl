@@ -14,7 +14,7 @@ import (
 	{{- end}}
 	{{- end}}
 	{{- if .HasPrompts}}
-	"go.probo.inc/mcpgen/pkg/mcputil"
+	"go.probo.inc/mcpgen/mcputil"
 	{{- end}}
 	{{- end}}
 )

@@ -5,7 +5,7 @@ package test
 import (
 	"github.com/google/uuid"
 	"github.com/myapp/models"
-	"go.probo.inc/mcpgen/pkg/mcputil"
+	"go.probo.inc/mcpgen/mcputil"
 	"time"
 )
 
