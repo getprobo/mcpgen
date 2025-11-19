@@ -12,6 +12,11 @@ spec: mcp.yaml
 # Output directory for generated code
 output: generated
 
+# Server/exec configuration (like gqlgen)
+exec:
+  package: server
+  filename: server/server.go
+
 # Resolver configuration
 resolver:
   package: mcp_v1

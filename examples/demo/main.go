@@ -5,14 +5,15 @@ import (
 	"log"
 
 	mcp_v1 "demo/generated"
+	"demo/generated/server"
 )
 
 func main() {
 	resolver := mcp_v1.NewResolver()
-	server := mcp_v1.New(resolver)
+	srv := server.New(resolver)
 
 	ctx := context.Background()
-	if err := server.Start(ctx); err != nil {
+	if err := srv.Start(ctx); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

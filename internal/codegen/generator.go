@@ -429,18 +429,22 @@ func (g *Generator) generateServer() error {
 		return fmt.Errorf("failed to format server code: %w\n%s", err, buf.String())
 	}
 
-	serverFile := filepath.Join(g.config.Output, "server.go")
+	serverFile := "server.go"
+	if g.config.Exec.Filename != "" {
+		serverFile = g.config.Exec.Filename
+	}
+	serverPath := filepath.Join(g.config.Output, serverFile)
 
-	dir := filepath.Dir(serverFile)
+	dir := filepath.Dir(serverPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(serverFile, formatted, 0644); err != nil {
+	if err := os.WriteFile(serverPath, formatted, 0644); err != nil {
 		return fmt.Errorf("failed to write server file: %w", err)
 	}
 
-	fmt.Printf("Generated server: %s\n", serverFile)
+	fmt.Printf("Generated server: %s\n", serverPath)
 	return nil
 }
 
@@ -816,18 +820,29 @@ func (g *Generator) getRequiredHandlerNames() []string {
 }
 
 func (g *Generator) buildServerTemplateData() map[string]interface{} {
-	// Compute type prefix if model package is different
+	// Compute type prefix if model package is different from exec package
 	modelPackage := g.config.Model.Package
+	execPackage := g.config.Exec.Package
 	resolverPackage := g.config.Resolver.Package
 	typePrefix := ""
 	modelImportPath := ""
+	resolverImportPath := ""
+	resolverPrefix := ""
 
-	if modelPackage != resolverPackage {
+	// Server needs to import models if they're in a different package
+	if modelPackage != execPackage {
 		parts := strings.Split(modelPackage, "/")
 		typePrefix = parts[len(parts)-1] + "."
 
 		// Compute the full import path for the model package
 		modelImportPath = g.computeModelImportPath()
+	}
+
+	// Server needs to import resolver if it's in a different package
+	if resolverPackage != execPackage {
+		resolverImportPath = g.computeResolverImportPath()
+		// Use the resolver package name as prefix (e.g., "mcp_v1.")
+		resolverPrefix = resolverPackage + "."
 	}
 
 	tools := make([]map[string]interface{}, 0, len(g.spec.Tools))
@@ -937,6 +952,138 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 	}
 
 	data := map[string]interface{}{
+		"Package":              g.config.Exec.Package,
+		"ServerName":           g.spec.Info.Title,
+		"ServerVersion":        g.spec.Info.Version,
+		"ResolverType":         g.config.Resolver.Type,
+		"ResolverPackagePrefix": resolverPrefix,
+		"Tools":                tools,
+		"Resources":            resources,
+		"Prompts":              prompts,
+		"HasResources":         len(resources) > 0,
+		"HasPrompts":           len(prompts) > 0,
+		"HasTypedTools":        hasTypedTools,
+	}
+
+	// Add imports if packages are different from exec package
+	var imports []map[string]string
+	if modelPackage != execPackage && modelImportPath != "" {
+		imports = append(imports, map[string]string{
+			"Path":  modelImportPath,
+			"Alias": "",
+		})
+	}
+	if resolverPackage != execPackage && resolverImportPath != "" {
+		// Add alias if the package name differs from the last component of the path
+		alias := ""
+		pathParts := strings.Split(resolverImportPath, "/")
+		if len(pathParts) > 0 && pathParts[len(pathParts)-1] != resolverPackage {
+			alias = resolverPackage
+		}
+		imports = append(imports, map[string]string{
+			"Path":  resolverImportPath,
+			"Alias": alias,
+		})
+	}
+	if len(imports) > 0 {
+		data["Imports"] = imports
+	}
+
+	return data
+}
+
+func (g *Generator) buildResolverTemplateData() map[string]interface{} {
+	// Resolver template data is similar to server template data, but uses resolver package
+	modelPackage := g.config.Model.Package
+	resolverPackage := g.config.Resolver.Package
+	typePrefix := ""
+	modelImportPath := ""
+
+	// Resolver needs to import models if they're in a different package
+	if modelPackage != resolverPackage {
+		parts := strings.Split(modelPackage, "/")
+		typePrefix = parts[len(parts)-1] + "."
+
+		// Compute the full import path for the model package
+		modelImportPath = g.computeModelImportPath()
+	}
+
+	tools := make([]map[string]interface{}, 0, len(g.spec.Tools))
+	hasTypedTools := false
+	for _, tool := range g.spec.Tools {
+		toolData := map[string]interface{}{
+			"Name":        tool.Name,
+			"Description": tool.Description,
+			"HandlerName": toHandlerName(tool.Name),
+		}
+
+		// Add input type information
+		if tool.InputSchema != nil {
+			inputTypeName := typePrefix + toPascalCase(tool.Name) + "Input"
+			toolData["InputType"] = inputTypeName
+			toolData["HasInputType"] = true
+			hasTypedTools = true
+		}
+
+		// Add output type information
+		if tool.OutputSchema != nil {
+			outputTypeName := typePrefix + toPascalCase(tool.Name) + "Output"
+			toolData["OutputType"] = outputTypeName
+			toolData["HasOutputType"] = true
+		}
+
+		tools = append(tools, toolData)
+	}
+
+	resources := make([]map[string]interface{}, 0, len(g.spec.Resources))
+	for _, resource := range g.spec.Resources {
+		resData := map[string]interface{}{
+			"Name":        resource.Name,
+			"Description": resource.Description,
+			"HandlerName": toHandlerName(resource.Name),
+			"MimeType":    resource.MimeType,
+		}
+
+		if resource.URI != "" {
+			resData["URI"] = resource.URI
+		} else if resource.URITemplate != "" {
+			resData["URITemplate"] = resource.URITemplate
+			params := extractURIParams(resource.URITemplate)
+			resData["URIParams"] = params
+		}
+
+		resources = append(resources, resData)
+	}
+
+	prompts := make([]map[string]interface{}, 0, len(g.spec.Prompts))
+	for _, prompt := range g.spec.Prompts {
+		args := make([]map[string]interface{}, 0, len(prompt.Arguments))
+		for _, arg := range prompt.Arguments {
+			args = append(args, map[string]interface{}{
+				"Name":        arg.Name,
+				"Description": arg.Description,
+				"Required":    arg.Required,
+			})
+		}
+
+		promptData := map[string]interface{}{
+			"Name":        prompt.Name,
+			"Description": prompt.Description,
+			"HandlerName": toHandlerName(prompt.Name),
+			"Arguments":   args,
+		}
+
+		// Add args type if there are arguments
+		if len(prompt.Arguments) > 0 {
+			argsTypeName := typePrefix + toPascalCase(prompt.Name) + "Args"
+			promptData["ArgsType"] = argsTypeName
+			promptData["HasArgsType"] = true
+		}
+
+		prompts = append(prompts, promptData)
+	}
+
+	data := map[string]interface{}{
 		"Package":       g.config.Resolver.Package,
 		"ServerName":    g.spec.Info.Title,
 		"ServerVersion": g.spec.Info.Version,
@@ -951,55 +1098,65 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 
 	// Add model package import if different from resolver package
 	if modelPackage != resolverPackage && modelImportPath != "" {
-		var imports []string
-		imports = append(imports, modelImportPath)
+		var imports []map[string]string
+		imports = append(imports, map[string]string{
+			"Path":  modelImportPath,
+			"Alias": "",
+		})
 		data["Imports"] = imports
 	}
 
 	return data
 }
 
-func (g *Generator) buildResolverTemplateData() map[string]interface{} {
-	return g.buildServerTemplateData()
-}
-
 // computeModelImportPath computes the full import path for the model package
 func (g *Generator) computeModelImportPath() string {
-	// If the model package is already a full path (contains slashes), use it as-is
-	if strings.Contains(g.config.Model.Package, "/") {
-		return g.config.Model.Package
+	return g.computeImportPath(g.config.Model.Package, g.config.Model.Filename)
+}
+
+// computeResolverImportPath computes the full import path for the resolver package
+func (g *Generator) computeResolverImportPath() string {
+	return g.computeImportPath(g.config.Resolver.Package, g.config.Resolver.Filename)
+}
+
+// computeImportPath computes the full import path for a package
+func (g *Generator) computeImportPath(pkgName, filename string) string {
+	// If the package is already a full path (contains slashes), use it as-is
+	if strings.Contains(pkgName, "/") {
+		return pkgName
 	}
 
 	// Make output path absolute
 	absOutput, err := filepath.Abs(g.config.Output)
 	if err != nil {
-		return g.config.Model.Package
+		return pkgName
 	}
 
 	// Find the closest go.mod to the output directory
 	modulePath, moduleRoot, err := findClosestGoMod(absOutput)
 	if err != nil {
 		// If we can't read go.mod, fall back to using the package name directly
-		return g.config.Model.Package
+		return pkgName
 	}
 
 	// Compute the relative path from module root to output directory
 	relPath, err := filepath.Rel(moduleRoot, absOutput)
 	if err != nil {
 		// If we can't compute relative path, fall back to package name
-		return g.config.Model.Package
+		return pkgName
 	}
 
-	// Compute the import path based on module + relative path + model filename dir
+	// Compute the import path based on module + relative path + filename dir
 	// Example: demo + generated + types = demo/generated/types
-	modelDir := filepath.Dir(g.config.Model.Filename)
-	if modelDir == "." {
-		// If model filename has no directory component, use the model package name
-		return filepath.ToSlash(filepath.Join(modulePath, relPath, g.config.Model.Package))
+	fileDir := filepath.Dir(filename)
+	if fileDir == "." {
+		// If filename has no directory component, the files are in the output root
+		// Import path should be module + output relative path
+		return filepath.ToSlash(filepath.Join(modulePath, relPath))
 	}
 
 	// Otherwise, use the directory from the filename
-	return filepath.ToSlash(filepath.Join(modulePath, relPath, modelDir))
+	return filepath.ToSlash(filepath.Join(modulePath, relPath, fileDir))
 }
 
 // findClosestGoMod finds the closest go.mod file by walking up from the given directory

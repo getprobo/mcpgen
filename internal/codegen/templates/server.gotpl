@@ -10,7 +10,11 @@ import (
 	{{- if or .Imports .HasPrompts}}
 	{{- if .Imports}}
 	{{- range .Imports}}
-	"{{.}}"
+	{{- if .Alias}}
+	{{.Alias}} "{{.Path}}"
+	{{- else}}
+	"{{.Path}}"
+	{{- end}}
 	{{- end}}
 	{{- end}}
 	{{- if .HasPrompts}}
@@ -19,17 +23,21 @@ import (
 	{{- end}}
 )
 
+type toolResolver struct{ *{{.ResolverPackagePrefix}}{{.ResolverType}} }
+type promptResolver struct{ *{{.ResolverPackagePrefix}}{{.ResolverType}} }
+type resourceResolver struct{ *{{.ResolverPackagePrefix}}{{.ResolverType}} }
+
 // Server represents the MCP server
 type Server struct {
 	mcpServer        *mcp.Server
-	resolver         *{{.ResolverType}}
+	resolver         *{{.ResolverPackagePrefix}}{{.ResolverType}}
 	toolResolver     *toolResolver
 	promptResolver   *promptResolver
 	resourceResolver *resourceResolver
 }
 
 // New creates a new MCP server instance
-func New(resolver *{{.ResolverType}}) *Server {
+func New(resolver *{{.ResolverPackagePrefix}}{{.ResolverType}}) *Server {
 	return &Server{
 		resolver:         resolver,
 		toolResolver:     &toolResolver{resolver},
@@ -40,7 +48,6 @@ func New(resolver *{{.ResolverType}}) *Server {
 
 // Start initializes and starts the MCP server
 func (s *Server) Start(ctx context.Context) error {
-	// Create MCP server
 	s.mcpServer = mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "{{.ServerName}}",
@@ -49,7 +56,6 @@ func (s *Server) Start(ctx context.Context) error {
 		nil,
 	)
 
-	// Register tool handlers
 	s.registerToolHandlers()
 	{{- if .HasResources}}
 	s.registerResourceHandlers()
@@ -58,7 +64,6 @@ func (s *Server) Start(ctx context.Context) error {
 	s.registerPromptHandlers()
 	{{- end}}
 
-	// Start server with stdio transport
 	transport := &mcp.StdioTransport{}
 	log.Printf("MCP server %s v%s starting...\n", "{{.ServerName}}", "{{.ServerVersion}}")
 
@@ -69,7 +74,6 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
-// registerToolHandlers registers all tool handlers
 func (s *Server) registerToolHandlers() {
 	{{- range .Tools}}
 	mcp.AddTool(
@@ -92,7 +96,6 @@ func (s *Server) registerToolHandlers() {
 
 {{- if .HasResources}}
 
-// registerResourceHandlers registers all resource handlers
 func (s *Server) registerResourceHandlers() {
 	{{- range .Resources}}
 	{{- if .URI}}
@@ -128,7 +131,6 @@ func (s *Server) registerResourceHandlers() {
 
 {{- if .HasPrompts}}
 
-// registerPromptHandlers registers all prompt handlers
 func (s *Server) registerPromptHandlers() {
 	{{- range .Prompts}}
 	mcputil.AddPrompt(
@@ -152,4 +154,50 @@ func (s *Server) registerPromptHandlers() {
 	)
 	{{- end}}
 }
+{{- end}}
+
+{{- range .Tools}}
+{{- if .HasInputType}}
+{{- if .HasOutputType}}
+func (r *toolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, input *{{.InputType}}) (*mcp.CallToolResult, {{.OutputType}}, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req, input)
+}
+{{- else}}
+func (r *toolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, input *{{.InputType}}) (*mcp.CallToolResult, map[string]any, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req, input)
+}
+{{- end}}
+{{- else}}
+{{- if .HasOutputType}}
+func (r *toolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, {{.OutputType}}, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req, args)
+}
+{{- else}}
+func (r *toolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, map[string]any, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req, args)
+}
+{{- end}}
+{{- end}}
+{{- end}}
+
+{{- if .HasResources}}
+{{- range .Resources}}
+func (r *resourceResolver) {{.HandlerName}}(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req)
+}
+{{- end}}
+{{- end}}
+
+{{- if .HasPrompts}}
+{{- range .Prompts}}
+{{- if .HasArgsType}}
+func (r *promptResolver) {{.HandlerName}}(ctx context.Context, req *mcp.GetPromptRequest, args {{.ArgsType}}) (*mcp.GetPromptResult, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req, args)
+}
+{{- else}}
+func (r *promptResolver) {{.HandlerName}}(ctx context.Context, req *mcp.GetPromptRequest, args map[string]string) (*mcp.GetPromptResult, error) {
+	return r.{{$.ResolverType}}.{{.HandlerName}}(ctx, req, args)
+}
+{{- end}}
+{{- end}}
 {{- end}}

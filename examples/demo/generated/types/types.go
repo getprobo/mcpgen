@@ -526,9 +526,9 @@ func (e TaskInputPriority) MarshalJSON() ([]byte, error) {
 // Calculate2Input represents the schema
 type Calculate2Input struct {
 	// Whether task is completed
-	Completed bool `json:"completed,omitempty"`
+	Completed *bool `json:"completed,omitempty"`
 	// Task deadline
-	Deadline time.Time `json:"deadline,omitempty"`
+	Deadline *time.Time `json:"deadline,omitempty"`
 	// Task priority level
 	Priority Calculate2InputPriority `json:"priority"`
 	// Task tags
@@ -550,17 +550,17 @@ type CalculateInput struct {
 // CalculateOutput represents the schema
 type CalculateOutput struct {
 	// The operation that was performed
-	Operation string `json:"operation,omitempty"`
+	Operation *string `json:"operation,omitempty"`
 	// The result value
-	Value float64 `json:"value,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
 // CreateTaskInput represents the schema
 type CreateTaskInput struct {
 	// Whether task is completed
-	Completed bool `json:"completed,omitempty"`
+	Completed *bool `json:"completed,omitempty"`
 	// Task deadline
-	Deadline time.Time `json:"deadline,omitempty"`
+	Deadline *time.Time `json:"deadline,omitempty"`
 	// Task priority level
 	Priority CreateTaskInputPriority `json:"priority"`
 	// Task tags
@@ -572,51 +572,51 @@ type CreateTaskInput struct {
 // CreateTaskOutput represents the schema
 type CreateTaskOutput struct {
 	// Creation timestamp
-	CreatedAt time.Time `json:"createdAt,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	// Task ID
-	ID string `json:"id,omitempty"`
+	ID *string `json:"id,omitempty"`
 	// Priority level
-	Priority CreateTaskOutputPriority `json:"priority,omitempty"`
+	Priority *CreateTaskOutputPriority `json:"priority,omitempty"`
 	// Task status
-	Status CreateTaskOutputStatus `json:"status,omitempty"`
+	Status *CreateTaskOutputStatus `json:"status,omitempty"`
 	// Task title
-	Title string `json:"title,omitempty"`
+	Title *string `json:"title,omitempty"`
 }
 
 // GetHistoryInput represents the schema
 type GetHistoryInput struct {
 	// Maximum number of history entries
-	Limit int64 `json:"limit,omitempty"`
+	Limit *int64 `json:"limit,omitempty"`
 }
 
 // LastResultContent represents the schema
 type LastResultContent struct {
 	// The operation that was performed
-	Operation string `json:"operation,omitempty"`
+	Operation *string `json:"operation,omitempty"`
 	// The result value
-	Value float64 `json:"value,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
 // MathHelpArgs represents the schema
 type MathHelpArgs struct {
 	// The operation to get help with
-	Operation string `json:"operation,omitempty"`
+	Operation *string `json:"operation,omitempty"`
 }
 
 // Result represents the schema
 type Result struct {
 	// The operation that was performed
-	Operation string `json:"operation,omitempty"`
+	Operation *string `json:"operation,omitempty"`
 	// The result value
-	Value float64 `json:"value,omitempty"`
+	Value *float64 `json:"value,omitempty"`
 }
 
 // SearchInput represents the schema
 type SearchInput struct {
 	// Filter results
-	Filter SearchInputFilter `json:"filter,omitempty"`
+	Filter *SearchInputFilter `json:"filter,omitempty"`
 	// Maximum number of results
-	Limit int64 `json:"limit,omitempty"`
+	Limit *int64 `json:"limit,omitempty"`
 	// Search query
 	Query string `json:"query"`
 }
@@ -624,45 +624,45 @@ type SearchInput struct {
 // TaskDetails represents the schema
 type TaskDetails struct {
 	// Creation timestamp
-	CreatedAt time.Time `json:"createdAt,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	// Task ID
-	ID string `json:"id,omitempty"`
+	ID *string `json:"id,omitempty"`
 	// Priority level
-	Priority TaskDetailsPriority `json:"priority,omitempty"`
+	Priority *TaskDetailsPriority `json:"priority,omitempty"`
 	// Task status
-	Status TaskDetailsStatus `json:"status,omitempty"`
+	Status *TaskDetailsStatus `json:"status,omitempty"`
 	// Task title
-	Title string `json:"title,omitempty"`
+	Title *string `json:"title,omitempty"`
 }
 
 // TaskDetailsContent represents the schema
 type TaskDetailsContent struct {
 	// Creation timestamp
-	CreatedAt time.Time `json:"createdAt,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	// Task ID
-	ID string `json:"id,omitempty"`
+	ID *string `json:"id,omitempty"`
 	// Priority level
-	Priority TaskDetailsContentPriority `json:"priority,omitempty"`
+	Priority *TaskDetailsContentPriority `json:"priority,omitempty"`
 	// Task status
-	Status TaskDetailsContentStatus `json:"status,omitempty"`
+	Status *TaskDetailsContentStatus `json:"status,omitempty"`
 	// Task title
-	Title string `json:"title,omitempty"`
+	Title *string `json:"title,omitempty"`
 }
 
 // TaskHelpArgs represents the schema
 type TaskHelpArgs struct {
 	// Whether to show detailed help
-	Detailed string `json:"detailed,omitempty"`
+	Detailed *string `json:"detailed,omitempty"`
 	// The help topic (tasks, priorities, etc)
-	Topic string `json:"topic,omitempty"`
+	Topic *string `json:"topic,omitempty"`
 }
 
 // TaskInput represents the schema
 type TaskInput struct {
 	// Whether task is completed
-	Completed bool `json:"completed,omitempty"`
+	Completed *bool `json:"completed,omitempty"`
 	// Task deadline
-	Deadline time.Time `json:"deadline,omitempty"`
+	Deadline *time.Time `json:"deadline,omitempty"`
 	// Task priority level
 	Priority TaskInputPriority `json:"priority"`
 	// Task tags

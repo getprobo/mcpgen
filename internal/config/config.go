@@ -13,9 +13,15 @@ import (
 type Config struct {
 	Spec     string         `yaml:"spec" json:"spec"`
 	Output   string         `yaml:"output" json:"output"`
+	Exec     ExecConfig     `yaml:"exec,omitempty" json:"exec,omitempty"`
 	Resolver ResolverConfig `yaml:"resolver" json:"resolver"`
 	Model    ModelConfig    `yaml:"model,omitempty" json:"model,omitempty"`
 	Models   ModelsConfig   `yaml:"models,omitempty" json:"models,omitempty"`
+}
+
+type ExecConfig struct {
+	Package  string `yaml:"package,omitempty" json:"package,omitempty"`
+	Filename string `yaml:"filename,omitempty" json:"filename,omitempty"`
 }
 
 type ResolverConfig struct {
@@ -102,6 +108,10 @@ func Load(path string) (*Config, *MCPSpec, error) {
 	config := &Config{
 		Spec:   "schema.yaml",
 		Output: "generated",
+		Exec: ExecConfig{
+			Package:  "server",
+			Filename: "server/server.go",
+		},
 		Resolver: ResolverConfig{
 			Package:  "generated",
 			Filename: "resolver.go",
@@ -174,6 +184,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Output == "" {
 		return fmt.Errorf("output is required")
+	}
+	if c.Exec.Package == "" {
+		return fmt.Errorf("exec.package is required")
 	}
 	if c.Resolver.Package == "" {
 		return fmt.Errorf("resolver.package is required")
