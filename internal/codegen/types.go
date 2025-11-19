@@ -232,10 +232,16 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 			return "", fmt.Errorf("failed to generate field %s: %w", propName, err)
 		}
 
+		isRequired := schema.IsRequired(s, propName)
+		isOmittable := schema.IsOmittable(propSchema)
+
 		// Check if this field should be omittable (go.probo.inc/mcpgen/omittable annotation)
-		if schema.IsOmittable(propSchema) {
+		if isOmittable {
 			fieldType = fmt.Sprintf("mcputil.Omittable[%s]", fieldType)
 			g.imports["go.probo.inc/mcpgen/mcputil"] = true
+		} else if !isRequired && !isPointerType(fieldType) {
+			// Make non-required fields pointers (unless already a pointer or using Omittable)
+			fieldType = "*" + fieldType
 		}
 
 		if propSchema.Description != "" {
@@ -245,7 +251,7 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 		buf.WriteString(fmt.Sprintf("\t%s %s", fieldName, fieldType))
 
 		jsonTag := propName
-		if !schema.IsRequired(s, propName) {
+		if !isRequired {
 			jsonTag += ",omitempty"
 		}
 		buf.WriteString(fmt.Sprintf(" `json:\"%s\"`", jsonTag))
@@ -256,6 +262,11 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 	buf.WriteString("}")
 
 	return buf.String(), nil
+}
+
+// isPointerType checks if the given type string is already a pointer or slice type
+func isPointerType(t string) bool {
+	return len(t) > 0 && (t[0] == '*' || t[0] == '[')
 }
 
 func isNullableType(s *schema.Schema) (bool, *schema.Schema) {
