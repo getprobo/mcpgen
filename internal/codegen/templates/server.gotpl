@@ -72,28 +72,21 @@ func (s *Server) Start(ctx context.Context) error {
 // registerToolHandlers registers all tool handlers
 func (s *Server) registerToolHandlers() {
 	{{- range .Tools}}
-	{{- if .HasInputType}}
 	mcp.AddTool(
 		s.mcpServer,
 		&mcp.Tool{
 			Name:        "{{.Name}}",
 			Description: "{{.Description}}",
+			{{- if .HasInputType}}
 			InputSchema: {{.InputSchemaVar}},
+			{{- end}}
+			{{- if .HasOutputType}}
+			OutputSchema: {{.OutputSchemaVar}},
+			{{- end}}
 		},
 		s.toolResolver.{{.HandlerName}},
 	)
 
-	{{- else}}
-	mcp.AddTool(
-		s.mcpServer,
-		&mcp.Tool{
-			Name:        "{{.Name}}",
-			Description: "{{.Description}}",
-		},
-		s.toolResolver.{{.HandlerName}},
-	)
-
-	{{- end}}
 	{{- end}}
 }
 

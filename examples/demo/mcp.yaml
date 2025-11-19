@@ -97,6 +97,8 @@ tools:
       complexity: low
     inputSchema:
       $ref: "#/components/schemas/CalculateInput"
+    outputSchema:
+      $ref: "#/components/schemas/Result"
 
   - name: calculate2
     description: Perform basic arithmetic operations
@@ -117,6 +119,8 @@ tools:
     idempotent: false
     inputSchema:
       $ref: "#/components/schemas/TaskInput"
+    outputSchema:
+      $ref: "#/components/schemas/TaskDetails"
 
   # Tool 3: With inline schema
   - name: search

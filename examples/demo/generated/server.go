@@ -62,9 +62,10 @@ func (s *Server) registerToolHandlers() {
 	mcp.AddTool(
 		s.mcpServer,
 		&mcp.Tool{
-			Name:        "calculate",
-			Description: "Perform basic arithmetic operations",
-			InputSchema: types.CalculateToolInputSchema,
+			Name:         "calculate",
+			Description:  "Perform basic arithmetic operations",
+			InputSchema:  types.CalculateToolInputSchema,
+			OutputSchema: types.CalculateToolOutputSchema,
 		},
 		s.toolResolver.Calculate,
 	)
@@ -80,9 +81,10 @@ func (s *Server) registerToolHandlers() {
 	mcp.AddTool(
 		s.mcpServer,
 		&mcp.Tool{
-			Name:        "create_task",
-			Description: "Create a new task",
-			InputSchema: types.CreateTaskToolInputSchema,
+			Name:         "create_task",
+			Description:  "Create a new task",
+			InputSchema:  types.CreateTaskToolInputSchema,
+			OutputSchema: types.CreateTaskToolOutputSchema,
 		},
 		s.toolResolver.CreateTask,
 	)

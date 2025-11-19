@@ -11,55 +11,57 @@ import (
 
 // Tool input schemas
 var (
-	CalculateToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["operation","a","b"],"properties":{"a":{"type":"number","description":"First operand"},"b":{"type":"number","description":"Second operand"},"operation":{"type":"string","description":"The arithmetic operation to perform","enum":["add","subtract","multiply","divide"]}}}`)
-	Calculate2ToolInputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
-	CreateTaskToolInputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
-	SearchToolInputSchema     = mcputil.MustUnmarshalSchema(`{"type":"object","required":["query"],"properties":{"filter":{"type":"string","description":"Filter results","enum":["all","active","completed"]},"limit":{"type":"integer","description":"Maximum number of results","default":10},"query":{"type":"string","description":"Search query"}}}`)
-	GetHistoryToolInputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of history entries","default":10}}}`)
+	Calculate2ToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
+	CreateTaskToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
+	CreateTaskToolOutputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"createdAt":{"type":"string","description":"Creation timestamp","format":"date-time"},"id":{"type":"string","description":"Task ID"},"priority":{"type":"string","description":"Priority level","enum":["low","medium","high","urgent"]},"status":{"type":"string","description":"Task status","enum":["pending","in_progress","completed","cancelled"]},"title":{"type":"string","description":"Task title"}}}`)
+	SearchToolInputSchema      = mcputil.MustUnmarshalSchema(`{"type":"object","required":["query"],"properties":{"filter":{"type":"string","description":"Filter results","enum":["all","active","completed"]},"limit":{"type":"integer","description":"Maximum number of results","default":10},"query":{"type":"string","description":"Search query"}}}`)
+	GetHistoryToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of history entries","default":10}}}`)
+	CalculateToolInputSchema   = mcputil.MustUnmarshalSchema(`{"type":"object","required":["operation","a","b"],"properties":{"a":{"type":"number","description":"First operand"},"b":{"type":"number","description":"Second operand"},"operation":{"type":"string","description":"The arithmetic operation to perform","enum":["add","subtract","multiply","divide"]}}}`)
+	CalculateToolOutputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"operation":{"type":"string","description":"The operation that was performed"},"value":{"type":"number","description":"The result value"}}}`)
 )
 
-// Priority level
-type Priority string
+// The arithmetic operation to perform
+type Operation string
 
 const (
-	PriorityLow    Priority = "low"
-	PriorityMedium Priority = "medium"
-	PriorityHigh   Priority = "high"
-	PriorityUrgent Priority = "urgent"
+	OperationAdd      Operation = "add"
+	OperationSubtract Operation = "subtract"
+	OperationMultiply Operation = "multiply"
+	OperationDivide   Operation = "divide"
 )
 
-// IsValid returns true if the Priority value is valid
-func (e Priority) IsValid() bool {
+// IsValid returns true if the Operation value is valid
+func (e Operation) IsValid() bool {
 	switch e {
-	case PriorityLow:
+	case OperationAdd:
 		return true
-	case PriorityMedium:
+	case OperationSubtract:
 		return true
-	case PriorityHigh:
+	case OperationMultiply:
 		return true
-	case PriorityUrgent:
+	case OperationDivide:
 		return true
 	}
 	return false
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (e *Priority) UnmarshalJSON(data []byte) error {
+func (e *Operation) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	*e = Priority(s)
+	*e = Operation(s)
 	if !e.IsValid() {
-		return fmt.Errorf("invalid Priority value: %q", s)
+		return fmt.Errorf("invalid Operation value: %q", s)
 	}
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler
-func (e Priority) MarshalJSON() ([]byte, error) {
+func (e Operation) MarshalJSON() ([]byte, error) {
 	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid Priority value: %q", string(e))
+		return nil, fmt.Errorf("invalid Operation value: %q", string(e))
 	}
 	return json.Marshal(string(e))
 }
@@ -110,6 +112,52 @@ func (e Status) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(e))
 }
 
+// Priority level
+type Priority string
+
+const (
+	PriorityLow    Priority = "low"
+	PriorityMedium Priority = "medium"
+	PriorityHigh   Priority = "high"
+	PriorityUrgent Priority = "urgent"
+)
+
+// IsValid returns true if the Priority value is valid
+func (e Priority) IsValid() bool {
+	switch e {
+	case PriorityLow:
+		return true
+	case PriorityMedium:
+		return true
+	case PriorityHigh:
+		return true
+	case PriorityUrgent:
+		return true
+	}
+	return false
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (e *Priority) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*e = Priority(s)
+	if !e.IsValid() {
+		return fmt.Errorf("invalid Priority value: %q", s)
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler
+func (e Priority) MarshalJSON() ([]byte, error) {
+	if !e.IsValid() {
+		return nil, fmt.Errorf("invalid Priority value: %q", string(e))
+	}
+	return json.Marshal(string(e))
+}
+
 // Filter results
 type Filter string
 
@@ -153,82 +201,32 @@ func (e Filter) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(e))
 }
 
-// The arithmetic operation to perform
-type Operation string
-
-const (
-	OperationAdd      Operation = "add"
-	OperationSubtract Operation = "subtract"
-	OperationMultiply Operation = "multiply"
-	OperationDivide   Operation = "divide"
-)
-
-// IsValid returns true if the Operation value is valid
-func (e Operation) IsValid() bool {
-	switch e {
-	case OperationAdd:
-		return true
-	case OperationSubtract:
-		return true
-	case OperationMultiply:
-		return true
-	case OperationDivide:
-		return true
-	}
-	return false
-}
-
-// UnmarshalJSON implements json.Unmarshaler
-func (e *Operation) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	*e = Operation(s)
-	if !e.IsValid() {
-		return fmt.Errorf("invalid Operation value: %q", s)
-	}
-	return nil
-}
-
-// MarshalJSON implements json.Marshaler
-func (e Operation) MarshalJSON() ([]byte, error) {
-	if !e.IsValid() {
-		return nil, fmt.Errorf("invalid Operation value: %q", string(e))
-	}
-	return json.Marshal(string(e))
-}
-
-// Result represents the schema
-type Result struct {
-	// The operation that was performed
-	Operation string `json:"operation,omitempty"`
-	// The result value
-	Value float64 `json:"value,omitempty"`
-}
-
-// CalculateInput represents the schema
-type CalculateInput struct {
-	// First operand
-	A float64 `json:"a"`
-	// Second operand
-	B float64 `json:"b"`
-	// The arithmetic operation to perform
-	Operation Operation `json:"operation"`
+// TaskDetailsContent represents the schema
+type TaskDetailsContent struct {
+	// Priority level
+	Priority Priority `json:"priority,omitempty"`
+	// Task status
+	Status Status `json:"status,omitempty"`
+	// Task title
+	Title string `json:"title,omitempty"`
+	// Creation timestamp
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	// Task ID
+	ID string `json:"id,omitempty"`
 }
 
 // Calculate2Input represents the schema
 type Calculate2Input struct {
+	// Task tags
+	Tags []string `json:"tags,omitempty"`
+	// Task title
+	Title string `json:"title"`
 	// Whether task is completed
 	Completed bool `json:"completed,omitempty"`
 	// Task deadline
 	Deadline time.Time `json:"deadline,omitempty"`
 	// Task priority level
 	Priority Priority `json:"priority"`
-	// Task tags
-	Tags []string `json:"tags,omitempty"`
-	// Task title
-	Title string `json:"title"`
 }
 
 // CreateTaskInput represents the schema
@@ -251,6 +249,14 @@ type GetHistoryInput struct {
 	Limit int64 `json:"limit,omitempty"`
 }
 
+// LastResultContent represents the schema
+type LastResultContent struct {
+	// The operation that was performed
+	Operation string `json:"operation,omitempty"`
+	// The result value
+	Value float64 `json:"value,omitempty"`
+}
+
 // TaskHelpArgs represents the schema
 type TaskHelpArgs struct {
 	// The help topic (tasks, priorities, etc)
@@ -265,18 +271,36 @@ type MathHelpArgs struct {
 	Operation string `json:"operation,omitempty"`
 }
 
+// CalculateInput represents the schema
+type CalculateInput struct {
+	// Second operand
+	B float64 `json:"b"`
+	// The arithmetic operation to perform
+	Operation Operation `json:"operation"`
+	// First operand
+	A float64 `json:"a"`
+}
+
+// Result represents the schema
+type Result struct {
+	// The operation that was performed
+	Operation string `json:"operation,omitempty"`
+	// The result value
+	Value float64 `json:"value,omitempty"`
+}
+
 // TaskDetails represents the schema
 type TaskDetails struct {
+	// Task status
+	Status Status `json:"status,omitempty"`
+	// Task title
+	Title string `json:"title,omitempty"`
 	// Creation timestamp
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	// Task ID
 	ID string `json:"id,omitempty"`
 	// Priority level
 	Priority Priority `json:"priority,omitempty"`
-	// Task status
-	Status Status `json:"status,omitempty"`
-	// Task title
-	Title string `json:"title,omitempty"`
 }
 
 // TaskInput represents the schema
@@ -293,34 +317,34 @@ type TaskInput struct {
 	Title string `json:"title"`
 }
 
-// SearchInput represents the schema
-type SearchInput struct {
-	// Maximum number of results
-	Limit int64 `json:"limit,omitempty"`
-	// Search query
-	Query string `json:"query"`
-	// Filter results
-	Filter Filter `json:"filter,omitempty"`
+// CalculateOutput represents the schema
+type CalculateOutput struct {
+	// The result value
+	Value float64 `json:"value,omitempty"`
+	// The operation that was performed
+	Operation string `json:"operation,omitempty"`
 }
 
-// TaskDetailsContent represents the schema
-type TaskDetailsContent struct {
+// CreateTaskOutput represents the schema
+type CreateTaskOutput struct {
+	// Task ID
+	ID string `json:"id,omitempty"`
+	// Priority level
+	Priority Priority `json:"priority,omitempty"`
 	// Task status
 	Status Status `json:"status,omitempty"`
 	// Task title
 	Title string `json:"title,omitempty"`
 	// Creation timestamp
 	CreatedAt time.Time `json:"createdAt,omitempty"`
-	// Task ID
-	ID string `json:"id,omitempty"`
-	// Priority level
-	Priority Priority `json:"priority,omitempty"`
 }
 
-// LastResultContent represents the schema
-type LastResultContent struct {
-	// The operation that was performed
-	Operation string `json:"operation,omitempty"`
-	// The result value
-	Value float64 `json:"value,omitempty"`
+// SearchInput represents the schema
+type SearchInput struct {
+	// Filter results
+	Filter Filter `json:"filter,omitempty"`
+	// Maximum number of results
+	Limit int64 `json:"limit,omitempty"`
+	// Search query
+	Query string `json:"query"`
 }
