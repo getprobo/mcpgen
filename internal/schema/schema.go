@@ -66,3 +66,20 @@ func IsRequired(s *Schema, propName string) bool {
 	}
 	return false
 }
+
+// IsOmittable checks if a schema property has the x-go-omittable annotation set to true.
+// This is used to wrap fields in mcputil.Omittable[T] to distinguish between
+// "not set", "set to null", and "set to value".
+func IsOmittable(s *Schema) bool {
+	if s == nil || s.Extra == nil {
+		return false
+	}
+
+	if omittable, ok := s.Extra["x-go-omittable"]; ok {
+		if omittableBool, ok := omittable.(bool); ok {
+			return omittableBool
+		}
+	}
+
+	return false
+}

@@ -232,6 +232,12 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 			return "", fmt.Errorf("failed to generate field %s: %w", propName, err)
 		}
 
+		// Check if this field should be omittable (x-go-omittable annotation)
+		if schema.IsOmittable(propSchema) {
+			fieldType = fmt.Sprintf("mcputil.Omittable[%s]", fieldType)
+			g.imports["go.probo.inc/mcpgen/mcputil"] = true
+		}
+
 		if propSchema.Description != "" {
 			buf.WriteString(formatComment(propSchema.Description, "\t"))
 		}

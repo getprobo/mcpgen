@@ -106,6 +106,34 @@ components:
           $ref: "#/components/schemas/Timestamp"
       required: [id, name, createdAt]
 
+    # Update input with omittable fields
+    UpdateTaskInput:
+      type: object
+      description: Input for partial task update
+      properties:
+        id:
+          $ref: "#/components/schemas/UUID"
+          description: Task ID to update
+        title:
+          type: string
+          description: New title (omit to keep unchanged, null to clear)
+          x-go-omittable: true
+        status:
+          $ref: "#/components/schemas/Status"
+          description: New status (omit to keep unchanged)
+          x-go-omittable: true
+        priority:
+          type: integer
+          description: New priority (omit to keep unchanged, null to clear)
+          x-go-omittable: true
+        tags:
+          type: array
+          items:
+            type: string
+          description: New tags (omit to keep unchanged, null to clear)
+          x-go-omittable: true
+      required: [id]
+
 tools:
   - name: create_task
     description: Create a new task
@@ -113,9 +141,9 @@ tools:
       $ref: "#/components/schemas/Task"
 
   - name: update_task
-    description: Update task fields
+    description: Update task fields (partial update with omittable fields)
     inputSchema:
-      $ref: "#/components/schemas/OptionalFields"
+      $ref: "#/components/schemas/UpdateTaskInput"
 
   - name: create_project
     description: Create a new project
