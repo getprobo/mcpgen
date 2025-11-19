@@ -12,26 +12,22 @@ import (
 	mcputil "go.probo.inc/mcpgen/mcp"
 )
 
-type toolResolver struct{ *mcp_v1.Resolver }
-type promptResolver struct{ *mcp_v1.Resolver }
-type resourceResolver struct{ *mcp_v1.Resolver }
-
 // Server represents the MCP server
 type Server struct {
 	mcpServer        *mcp.Server
 	resolver         *mcp_v1.Resolver
-	toolResolver     *toolResolver
-	promptResolver   *promptResolver
-	resourceResolver *resourceResolver
+	toolResolver     *mcp_v1.ToolResolver
+	promptResolver   *mcp_v1.PromptResolver
+	resourceResolver *mcp_v1.ResourceResolver
 }
 
 // New creates a new MCP server instance
 func New(resolver *mcp_v1.Resolver) *Server {
 	return &Server{
 		resolver:         resolver,
-		toolResolver:     &toolResolver{resolver},
-		promptResolver:   &promptResolver{resolver},
-		resourceResolver: &resourceResolver{resolver},
+		toolResolver:     &mcp_v1.ToolResolver{resolver},
+		promptResolver:   &mcp_v1.PromptResolver{resolver},
+		resourceResolver: &mcp_v1.ResourceResolver{resolver},
 	}
 }
 
@@ -175,34 +171,4 @@ func (s *Server) registerPromptHandlers() {
 		},
 		s.promptResolver.MathHelp,
 	)
-}
-func (r *toolResolver) Calculate(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (*mcp.CallToolResult, types.CalculateOutput, error) {
-	return r.Resolver.Calculate(ctx, req, input)
-}
-func (r *toolResolver) Calculate2(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (*mcp.CallToolResult, map[string]any, error) {
-	return r.Resolver.Calculate2(ctx, req, input)
-}
-func (r *toolResolver) CreateTask(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (*mcp.CallToolResult, types.CreateTaskOutput, error) {
-	return r.Resolver.CreateTask(ctx, req, input)
-}
-func (r *toolResolver) Search(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (*mcp.CallToolResult, map[string]any, error) {
-	return r.Resolver.Search(ctx, req, input)
-}
-func (r *toolResolver) GetHistory(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (*mcp.CallToolResult, map[string]any, error) {
-	return r.Resolver.GetHistory(ctx, req, input)
-}
-func (r *resourceResolver) DemoREADME(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-	return r.Resolver.DemoREADME(ctx, req)
-}
-func (r *resourceResolver) TaskDetails(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-	return r.Resolver.TaskDetails(ctx, req)
-}
-func (r *resourceResolver) LastResult(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-	return r.Resolver.LastResult(ctx, req)
-}
-func (r *promptResolver) TaskHelp(ctx context.Context, req *mcp.GetPromptRequest, args types.TaskHelpArgs) (*mcp.GetPromptResult, error) {
-	return r.Resolver.TaskHelp(ctx, req, args)
-}
-func (r *promptResolver) MathHelp(ctx context.Context, req *mcp.GetPromptRequest, args types.MathHelpArgs) (*mcp.GetPromptResult, error) {
-	return r.Resolver.MathHelp(ctx, req, args)
 }

@@ -20,26 +20,35 @@ import (
 	{{- end}}
 )
 
+type ToolResolver struct{ *{{.ResolverType}} }
+type PromptResolver struct{ *{{.ResolverType}} }
+type ResourceResolver struct{ *{{.ResolverType}} }
+
 {{- range .Tools}}
 
-// {{.HandlerName}} handles the {{.Name}} tool{{- if .Description}}: {{.Description}}{{- end}}
+// {{.HandlerName}} handles the {{.Name}} tool
+// {{.Description}}
 {{- if .HasInputType}}
 {{- if .HasOutputType}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, input *{{.InputType}}) (*mcp.CallToolResult, {{.OutputType}}, error) {
-	return nil, {{.OutputType}}{}, fmt.Errorf("{{.Name}} not implemented")
+func (r *ToolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, input *{{.InputType}}) (*mcp.CallToolResult, map[string]any, error) {
+	// r.{{$.ResolverType}} fields are available here
+	return nil, nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- else}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, input *{{.InputType}}) (*mcp.CallToolResult, map[string]any, error) {
+func (r *ToolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, input *{{.InputType}}) (*mcp.CallToolResult, map[string]any, error) {
+	// r.{{$.ResolverType}} fields are available here
 	return nil, nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- end}}
 {{- else}}
 {{- if .HasOutputType}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, {{.OutputType}}, error) {
-	return nil, {{.OutputType}}{}, fmt.Errorf("{{.Name}} not implemented")
+func (r *ToolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, map[string]any, error) {
+	// r.{{$.ResolverType}} fields are available here
+	return nil, nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- else}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, map[string]any, error) {
+func (r *ToolResolver) {{.HandlerName}}(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, map[string]any, error) {
+	// r.{{$.ResolverType}} fields are available here
 	return nil, nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- end}}
@@ -49,8 +58,10 @@ func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.Call
 {{- if .HasResources}}
 {{- range .Resources}}
 
-// {{.HandlerName}} handles the {{.Name}} resource{{- if .Description}}: {{.Description}}{{- end}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+// {{.HandlerName}} handles the {{.Name}} resource
+// {{.Description}}
+func (r *ResourceResolver) {{.HandlerName}}(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	// r.{{$.ResolverType}} fields are available here
 	return nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- end}}
@@ -59,13 +70,16 @@ func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.Read
 {{- if .HasPrompts}}
 {{- range .Prompts}}
 
-// {{.HandlerName}} handles the {{.Name}} prompt{{- if .Description}}: {{.Description}}{{- end}}
+// {{.HandlerName}} handles the {{.Name}} prompt
+// {{.Description}}
 {{- if .HasArgsType}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.GetPromptRequest, args {{.ArgsType}}) (*mcp.GetPromptResult, error) {
+func (r *PromptResolver) {{.HandlerName}}(ctx context.Context, req *mcp.GetPromptRequest, args {{.ArgsType}}) (*mcp.GetPromptResult, error) {
+	// r.{{$.ResolverType}} fields are available here
 	return nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- else}}
-func (r *{{$.ResolverType}}) {{.HandlerName}}(ctx context.Context, req *mcp.GetPromptRequest, args map[string]string) (*mcp.GetPromptResult, error) {
+func (r *PromptResolver) {{.HandlerName}}(ctx context.Context, req *mcp.GetPromptRequest, args map[string]string) (*mcp.GetPromptResult, error) {
+	// r.{{$.ResolverType}} fields are available here
 	return nil, fmt.Errorf("{{.Name}} not implemented")
 }
 {{- end}}

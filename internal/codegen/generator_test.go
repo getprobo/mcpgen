@@ -587,6 +587,10 @@ func TestFullGenerateWorkflow(t *testing.T) {
 	cfg := &config.Config{
 		Spec:   specPath,
 		Output: outputDir,
+		Exec: config.ExecConfig{
+			Package:  "test",
+			Filename: "server.go",
+		},
 		Model: config.ModelConfig{
 			Package:  "test",
 			Filename: "models.go",
@@ -656,7 +660,7 @@ func TestFullGenerateWorkflow(t *testing.T) {
 	require.NoError(t, err, "Failed to read schema.resolvers.go")
 
 	resolversStr := string(resolversContent)
-	if !containsString(resolversStr, "func (r *toolResolver) CreateEvent") {
+	if !containsString(resolversStr, "func (r *ToolResolver) CreateEvent") {
 		t.Error("schema.resolvers.go should contain CreateEvent handler")
 	}
 }
@@ -670,6 +674,10 @@ func TestGenerateWithDifferentPackages(t *testing.T) {
 	cfg := &config.Config{
 		Spec:   specPath,
 		Output: outputDir,
+		Exec: config.ExecConfig{
+			Package:  "server",
+			Filename: "server.go",
+		},
 		Model: config.ModelConfig{
 			Package:  "types",
 			Filename: "types/models.go",
@@ -694,13 +702,13 @@ func TestGenerateWithDifferentPackages(t *testing.T) {
 
 	data := gen.buildServerTemplateData()
 
-	// When model package differs from resolver package, should have imports
+	// When model package differs from exec package, should have imports
 	imports, ok := data["Imports"]
-		assert.True(t, ok, "Should have Imports when packages differ")
+	assert.True(t, ok, "Should have Imports when packages differ")
 
 	if imports != nil {
-		importList, ok := imports.([]string)
-		require.True(t, ok, "Imports should be []string")
+		importList, ok := imports.([]map[string]string)
+		require.True(t, ok, "Imports should be []map[string]string")
 		assert.NotEmpty(t, importList, "Imports list should not be empty when packages differ")
 	}
 }

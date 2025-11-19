@@ -12,52 +12,76 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Calculate handles the calculate tool: Perform basic arithmetic operations
-func (r *Resolver) Calculate(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (*mcp.CallToolResult, types.CalculateOutput, error) {
-	return nil, types.CalculateOutput{}, fmt.Errorf("calculate not implemented")
+type ToolResolver struct{ *Resolver }
+type PromptResolver struct{ *Resolver }
+type ResourceResolver struct{ *Resolver }
+
+// Calculate handles the calculate tool
+// Perform basic arithmetic operations
+func (r *ToolResolver) Calculate(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (*mcp.CallToolResult, map[string]any, error) {
+	// r.Resolver fields are available here
+	return nil, nil, fmt.Errorf("calculate not implemented")
 }
 
-// Calculate2 handles the calculate2 tool: Perform basic arithmetic operations
-func (r *Resolver) Calculate2(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (*mcp.CallToolResult, map[string]any, error) {
+// Calculate2 handles the calculate2 tool
+// Perform basic arithmetic operations
+func (r *ToolResolver) Calculate2(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (*mcp.CallToolResult, map[string]any, error) {
+	// r.Resolver fields are available here
 	return nil, nil, fmt.Errorf("calculate2 not implemented")
 }
 
-// CreateTask handles the create_task tool: Create a new task
-func (r *Resolver) CreateTask(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (*mcp.CallToolResult, types.CreateTaskOutput, error) {
-	return nil, types.CreateTaskOutput{}, fmt.Errorf("create_task not implemented")
+// CreateTask handles the create_task tool
+// Create a new task
+func (r *ToolResolver) CreateTask(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (*mcp.CallToolResult, map[string]any, error) {
+	// r.Resolver fields are available here
+	return nil, nil, fmt.Errorf("create_task not implemented")
 }
 
-// Search handles the search tool: Search for items
-func (r *Resolver) Search(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (*mcp.CallToolResult, map[string]any, error) {
+// Search handles the search tool
+// Search for items
+func (r *ToolResolver) Search(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (*mcp.CallToolResult, map[string]any, error) {
+	// r.Resolver fields are available here
 	return nil, nil, fmt.Errorf("search not implemented")
 }
 
-// GetHistory handles the get_history tool: Get calculation history
-func (r *Resolver) GetHistory(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (*mcp.CallToolResult, map[string]any, error) {
+// GetHistory handles the get_history tool
+// Get calculation history
+func (r *ToolResolver) GetHistory(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (*mcp.CallToolResult, map[string]any, error) {
+	// r.Resolver fields are available here
 	return nil, nil, fmt.Errorf("get_history not implemented")
 }
 
-// DemoREADME handles the Demo README resource: Documentation for the demo server
-func (r *Resolver) DemoREADME(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+// DemoREADME handles the Demo README resource
+// Documentation for the demo server
+func (r *ResourceResolver) DemoREADME(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	// r.Resolver fields are available here
 	return nil, fmt.Errorf("Demo README not implemented")
 }
 
-// TaskDetails handles the Task Details resource: Get details for a specific task
-func (r *Resolver) TaskDetails(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+// TaskDetails handles the Task Details resource
+// Get details for a specific task
+func (r *ResourceResolver) TaskDetails(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	// r.Resolver fields are available here
 	return nil, fmt.Errorf("Task Details not implemented")
 }
 
-// LastResult handles the Last Result resource: Get the last result for a specific operation
-func (r *Resolver) LastResult(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+// LastResult handles the Last Result resource
+// Get the last result for a specific operation
+func (r *ResourceResolver) LastResult(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	// r.Resolver fields are available here
 	return nil, fmt.Errorf("Last Result not implemented")
 }
 
-// TaskHelp handles the task_help prompt: Get help with task management
-func (r *Resolver) TaskHelp(ctx context.Context, req *mcp.GetPromptRequest, args types.TaskHelpArgs) (*mcp.GetPromptResult, error) {
+// TaskHelp handles the task_help prompt
+// Get help with task management
+func (r *PromptResolver) TaskHelp(ctx context.Context, req *mcp.GetPromptRequest, args types.TaskHelpArgs) (*mcp.GetPromptResult, error) {
+	// r.Resolver fields are available here
 	return nil, fmt.Errorf("task_help not implemented")
 }
 
-// MathHelp handles the math_help prompt: Get help with mathematical operations
-func (r *Resolver) MathHelp(ctx context.Context, req *mcp.GetPromptRequest, args types.MathHelpArgs) (*mcp.GetPromptResult, error) {
+// MathHelp handles the math_help prompt
+// Get help with mathematical operations
+func (r *PromptResolver) MathHelp(ctx context.Context, req *mcp.GetPromptRequest, args types.MathHelpArgs) (*mcp.GetPromptResult, error) {
+	// r.Resolver fields are available here
 	return nil, fmt.Errorf("math_help not implemented")
 }

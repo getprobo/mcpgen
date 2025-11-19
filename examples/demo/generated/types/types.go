@@ -5,19 +5,19 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	mcputil "go.probo.inc/mcpgen/mcp"
+	"go.probo.inc/mcpgen/mcp"
 	"time"
 )
 
 // Tool input schemas
 var (
-	Calculate2ToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
-	CalculateToolInputSchema   = mcputil.MustUnmarshalSchema(`{"type":"object","required":["operation","a","b"],"properties":{"a":{"type":"number","description":"First operand"},"b":{"type":"number","description":"Second operand"},"operation":{"type":"string","description":"The arithmetic operation to perform","enum":["add","subtract","multiply","divide"]}}}`)
-	CalculateToolOutputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"operation":{"type":"string","description":"The operation that was performed"},"value":{"type":"number","description":"The result value"}}}`)
-	CreateTaskToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
-	CreateTaskToolOutputSchema = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"createdAt":{"type":"string","description":"Creation timestamp","format":"date-time"},"id":{"type":"string","description":"Task ID"},"priority":{"type":"string","description":"Priority level","enum":["low","medium","high","urgent"]},"status":{"type":"string","description":"Task status","enum":["pending","in_progress","completed","cancelled"]},"title":{"type":"string","description":"Task title"}}}`)
-	GetHistoryToolInputSchema  = mcputil.MustUnmarshalSchema(`{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of history entries","default":10}}}`)
-	SearchToolInputSchema      = mcputil.MustUnmarshalSchema(`{"type":"object","required":["query"],"properties":{"filter":{"type":"string","description":"Filter results","enum":["all","active","completed"]},"limit":{"type":"integer","description":"Maximum number of results","default":10},"query":{"type":"string","description":"Search query"}}}`)
+	Calculate2ToolInputSchema  = mcp.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
+	CalculateToolInputSchema   = mcp.MustUnmarshalSchema(`{"type":"object","required":["operation","a","b"],"properties":{"a":{"type":"number","description":"First operand"},"b":{"type":"number","description":"Second operand"},"operation":{"type":"string","description":"The arithmetic operation to perform","enum":["add","subtract","multiply","divide"]}}}`)
+	CalculateToolOutputSchema  = mcp.MustUnmarshalSchema(`{"type":"object","properties":{"operation":{"type":"string","description":"The operation that was performed"},"value":{"type":"number","description":"The result value"}}}`)
+	CreateTaskToolInputSchema  = mcp.MustUnmarshalSchema(`{"type":"object","required":["title","priority"],"properties":{"completed":{"type":"boolean","description":"Whether task is completed"},"deadline":{"type":"string","description":"Task deadline","format":"date-time"},"priority":{"type":"string","description":"Task priority level","enum":["low","medium","high","urgent"]},"tags":{"type":"array","description":"Task tags","items":{"type":"string"}},"title":{"type":"string","description":"Task title"}}}`)
+	CreateTaskToolOutputSchema = mcp.MustUnmarshalSchema(`{"type":"object","properties":{"createdAt":{"type":"string","description":"Creation timestamp","format":"date-time"},"id":{"type":"string","description":"Task ID"},"priority":{"type":"string","description":"Priority level","enum":["low","medium","high","urgent"]},"status":{"type":"string","description":"Task status","enum":["pending","in_progress","completed","cancelled"]},"title":{"type":"string","description":"Task title"}}}`)
+	GetHistoryToolInputSchema  = mcp.MustUnmarshalSchema(`{"type":"object","properties":{"limit":{"type":"integer","description":"Maximum number of history entries","default":10}}}`)
+	SearchToolInputSchema      = mcp.MustUnmarshalSchema(`{"type":"object","required":["query"],"properties":{"filter":{"type":"string","description":"Filter results","enum":["all","active","completed"]},"limit":{"type":"integer","description":"Maximum number of results","default":10},"query":{"type":"string","description":"Search query"}}}`)
 )
 
 // Task priority level
