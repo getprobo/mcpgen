@@ -3,37 +3,16 @@
 package server
 
 import (
-	"context"
-	"log"
-
 	mcp_v1 "demo/generated"
 	"demo/generated/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	mcputil "go.probo.inc/mcpgen/mcp"
 )
 
-// Server represents the MCP server
-type Server struct {
-	mcpServer        *mcp.Server
-	resolver         *mcp_v1.Resolver
-	toolResolver     *mcp_v1.ToolResolver
-	promptResolver   *mcp_v1.PromptResolver
-	resourceResolver *mcp_v1.ResourceResolver
-}
-
-// New creates a new MCP server instance
-func New(resolver *mcp_v1.Resolver) *Server {
-	return &Server{
-		resolver:         resolver,
-		toolResolver:     &mcp_v1.ToolResolver{resolver},
-		promptResolver:   &mcp_v1.PromptResolver{resolver},
-		resourceResolver: &mcp_v1.ResourceResolver{resolver},
-	}
-}
-
-// Start initializes and starts the MCP server
-func (s *Server) Start(ctx context.Context) error {
-	s.mcpServer = mcp.NewServer(
+// New creates a new MCP server instance with all handlers registered.
+// Returns a fully configured *mcp.Server ready to be used with any transport.
+func New(resolver *mcp_v1.Resolver) *mcp.Server {
+	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "demo-server",
 			Version: "1.0.0",
@@ -41,103 +20,100 @@ func (s *Server) Start(ctx context.Context) error {
 		nil,
 	)
 
-	s.registerToolHandlers()
-	s.registerResourceHandlers()
-	s.registerPromptHandlers()
+	toolResolver := &mcp_v1.ToolResolver{resolver}
+	resourceResolver := &mcp_v1.ResourceResolver{resolver}
+	promptResolver := &mcp_v1.PromptResolver{resolver}
 
-	transport := &mcp.StdioTransport{}
-	log.Printf("MCP server %s v%s starting...\n", "demo-server", "1.0.0")
+	registerToolHandlers(server, toolResolver)
+	registerResourceHandlers(server, resourceResolver)
+	registerPromptHandlers(server, promptResolver)
 
-	if err := s.mcpServer.Run(ctx, transport); err != nil {
-		return err
-	}
-
-	return nil
+	return server
 }
 
-func (s *Server) registerToolHandlers() {
+func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver) {
 	mcp.AddTool(
-		s.mcpServer,
+		server,
 		&mcp.Tool{
 			Name:         "calculate",
 			Description:  "Perform basic arithmetic operations",
 			InputSchema:  types.CalculateToolInputSchema,
 			OutputSchema: types.CalculateToolOutputSchema,
 		},
-		s.toolResolver.Calculate,
+		toolResolver.Calculate,
 	)
 	mcp.AddTool(
-		s.mcpServer,
+		server,
 		&mcp.Tool{
 			Name:        "calculate2",
 			Description: "Perform basic arithmetic operations",
 			InputSchema: types.Calculate2ToolInputSchema,
 		},
-		s.toolResolver.Calculate2,
+		toolResolver.Calculate2,
 	)
 	mcp.AddTool(
-		s.mcpServer,
+		server,
 		&mcp.Tool{
 			Name:         "create_task",
 			Description:  "Create a new task",
 			InputSchema:  types.CreateTaskToolInputSchema,
 			OutputSchema: types.CreateTaskToolOutputSchema,
 		},
-		s.toolResolver.CreateTask,
+		toolResolver.CreateTask,
 	)
 	mcp.AddTool(
-		s.mcpServer,
+		server,
 		&mcp.Tool{
 			Name:        "search",
 			Description: "Search for items",
 			InputSchema: types.SearchToolInputSchema,
 		},
-		s.toolResolver.Search,
+		toolResolver.Search,
 	)
 	mcp.AddTool(
-		s.mcpServer,
+		server,
 		&mcp.Tool{
 			Name:        "get_history",
 			Description: "Get calculation history",
 			InputSchema: types.GetHistoryToolInputSchema,
 		},
-		s.toolResolver.GetHistory,
+		toolResolver.GetHistory,
 	)
 }
 
-func (s *Server) registerResourceHandlers() {
-	s.mcpServer.AddResource(
+func registerResourceHandlers(server *mcp.Server, resourceResolver *mcp_v1.ResourceResolver) {
+	server.AddResource(
 		&mcp.Resource{
 			URI:         "docs://readme",
 			Name:        "Demo README",
 			Description: "Documentation for the demo server",
 			MIMEType:    "text/markdown",
 		},
-		s.resourceResolver.DemoREADME,
+		resourceResolver.DemoREADME,
 	)
-	s.mcpServer.AddResourceTemplate(
+	server.AddResourceTemplate(
 		&mcp.ResourceTemplate{
 			URITemplate: "task://{id}",
 			Name:        "Task Details",
 			Description: "Get details for a specific task",
 			MIMEType:    "application/json",
 		},
-		s.resourceResolver.TaskDetails,
+		resourceResolver.TaskDetails,
 	)
-	s.mcpServer.AddResourceTemplate(
+	server.AddResourceTemplate(
 		&mcp.ResourceTemplate{
 			URITemplate: "result://{operation}",
 			Name:        "Last Result",
 			Description: "Get the last result for a specific operation",
 			MIMEType:    "application/json",
 		},
-		s.resourceResolver.LastResult,
+		resourceResolver.LastResult,
 	)
 }
 
-func (s *Server) registerPromptHandlers() {
+func registerPromptHandlers(server *mcp.Server, promptResolver *mcp_v1.PromptResolver) {
 	mcputil.AddPrompt(
-		s.mcpServer,
+		server,
 		&mcp.Prompt{
 			Name:        "task_help",
 			Description: "Get help with task management",
@@ -154,10 +130,10 @@ func (s *Server) registerPromptHandlers() {
 				},
 			},
 		},
-		s.promptResolver.TaskHelp,
+		promptResolver.TaskHelp,
 	)
 	mcputil.AddPrompt(
-		s.mcpServer,
+		server,
 		&mcp.Prompt{
 			Name:        "math_help",
 			Description: "Get help with mathematical operations",
@@ -169,6 +145,6 @@ func (s *Server) registerPromptHandlers() {
 				},
 			},
 		},
-		s.promptResolver.MathHelp,
+		promptResolver.MathHelp,
 	)
 }
