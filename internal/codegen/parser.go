@@ -45,14 +45,18 @@ func NewResolverParser(filePath string) (*ResolverParser, error) {
 func (p *ResolverParser) ExtractHandlers(resolverType string) (map[string]*HandlerInfo, error) {
 	handlers := make(map[string]*HandlerInfo)
 
-	// We now extract from toolResolver, promptResolver, and resourceResolver
+	// Extract from both old wrapper types and new direct Resolver type
 	allowedTypes := map[string]bool{
-		"toolResolver":     true,
-		"*toolResolver":    true,
-		"promptResolver":   true,
-		"*promptResolver":  true,
-		"resourceResolver": true,
+		// Old wrapper types (for backward compatibility during migration)
+		"toolResolver":      true,
+		"*toolResolver":     true,
+		"promptResolver":    true,
+		"*promptResolver":   true,
+		"resourceResolver":  true,
 		"*resourceResolver": true,
+		// New direct Resolver type
+		resolverType:  true,
+		"*" + resolverType: true,
 	}
 
 	for _, decl := range p.file.Decls {
@@ -76,9 +80,12 @@ func (p *ResolverParser) ExtractHandlers(resolverType string) (map[string]*Handl
 			return nil, fmt.Errorf("failed to extract source for %s: %w", methodName, err)
 		}
 
+		// Transform receiver type from old wrapper types to main Resolver type
+		sourceCode = TransformReceiverType(sourceCode, resolverType)
+
 		handlers[methodName] = &HandlerInfo{
 			Name:       methodName,
-			RecvType:   recvType,
+			RecvType:   "*" + resolverType, // Always use main Resolver type
 			SourceCode: sourceCode,
 			IsOrphaned: false,
 		}
@@ -118,6 +125,16 @@ func (p *ResolverParser) extractFunctionSource(funcDecl *ast.FuncDecl) (string, 
 	}
 
 	return buf.String(), nil
+}
+
+// TransformReceiverType rewrites the receiver type in handler source code from old wrapper types
+// (toolResolver, promptResolver, resourceResolver) to the main Resolver type
+func TransformReceiverType(sourceCode, resolverType string) string {
+	// Replace old wrapper types with main Resolver type
+	sourceCode = strings.ReplaceAll(sourceCode, "*toolResolver)", "*"+resolverType+")")
+	sourceCode = strings.ReplaceAll(sourceCode, "*promptResolver)", "*"+resolverType+")")
+	sourceCode = strings.ReplaceAll(sourceCode, "*resourceResolver)", "*"+resolverType+")")
+	return sourceCode
 }
 
 func IdentifyOrphanedHandlers(existingHandlers map[string]*HandlerInfo, requiredHandlers []string) {

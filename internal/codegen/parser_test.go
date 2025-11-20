@@ -445,8 +445,9 @@ func (r *toolResolver) Method() {}
 	}
 
 	handler := handlers["Method"]
-	if handler.RecvType != "*toolResolver" {
-		t.Errorf("Expected receiver type '*toolResolver', got %q", handler.RecvType)
+	// After transformation, the receiver type should be *Resolver
+	if handler.RecvType != "*Resolver" {
+		t.Errorf("Expected receiver type '*Resolver' (after transformation), got %q", handler.RecvType)
 	}
 }
 
@@ -474,9 +475,10 @@ func (r *toolResolver) HandleTest(ctx context.Context) error {
 	require.NoError(t, err, "Failed to extract handlers")
 
 	handler := handlers["HandleTest"]
-	if !strings.Contains(handler.SourceCode, "func (r *toolResolver) HandleTest") {
-		t.Error("Source code should contain function signature")
+	// After transformation, toolResolver should be changed to Resolver
+	if !strings.Contains(handler.SourceCode, "func (r *Resolver) HandleTest") {
+		t.Errorf("Source code should contain transformed function signature, got: %s", handler.SourceCode)
 	}
-		assert.Contains(t, handler.SourceCode, "return nil", "Source code should contain function body")
-		assert.Contains(t, handler.SourceCode, "x := 42", "Source code should contain function body statements")
+	assert.Contains(t, handler.SourceCode, "return nil", "Source code should contain function body")
+	assert.Contains(t, handler.SourceCode, "x := 42", "Source code should contain function body statements")
 }

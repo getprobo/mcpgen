@@ -3,6 +3,7 @@
 package {{.Package}}
 
 import (
+	"context"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	{{- if or .Imports .HasPrompts}}
 	{{- if .Imports}}
@@ -20,9 +21,26 @@ import (
 	{{- end}}
 )
 
+// ResolverInterface defines the interface that must be implemented by the parent resolver
+type ResolverInterface interface {
+	{{- range .Tools}}
+	{{.HandlerName}}Tool(ctx context.Context, req *mcp.CallToolRequest{{if .HasInputType}}, input *{{.InputType}}{{else}}, args map[string]any{{end}}) (*mcp.CallToolResult, {{if .HasOutputType}}{{.OutputType}}{{else}}map[string]any{{end}}, error)
+	{{- end}}
+	{{- if .HasResources}}
+	{{- range .Resources}}
+	{{.HandlerName}}Resource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
+	{{- end}}
+	{{- end}}
+	{{- if .HasPrompts}}
+	{{- range .Prompts}}
+	{{.HandlerName}}Prompt(ctx context.Context, req *mcp.GetPromptRequest{{if .HasArgsType}}, args {{.ArgsType}}{{else}}, args map[string]string{{end}}) (*mcp.GetPromptResult, error)
+	{{- end}}
+	{{- end}}
+}
+
 // New creates a new MCP server instance with all handlers registered.
 // Returns a fully configured *mcp.Server ready to be used with any transport.
-func New(resolver *{{.ResolverPackagePrefix}}{{.ResolverType}}) *mcp.Server {
+func New(resolver ResolverInterface) *mcp.Server {
 	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "{{.ServerName}}",
@@ -31,26 +49,18 @@ func New(resolver *{{.ResolverPackagePrefix}}{{.ResolverType}}) *mcp.Server {
 		nil,
 	)
 
-	toolResolver := &{{.ResolverPackagePrefix}}ToolResolver{resolver}
+	registerToolHandlers(server, resolver)
 	{{- if .HasResources}}
-	resourceResolver := &{{.ResolverPackagePrefix}}ResourceResolver{resolver}
+	registerResourceHandlers(server, resolver)
 	{{- end}}
 	{{- if .HasPrompts}}
-	promptResolver := &{{.ResolverPackagePrefix}}PromptResolver{resolver}
-	{{- end}}
-
-	registerToolHandlers(server, toolResolver)
-	{{- if .HasResources}}
-	registerResourceHandlers(server, resourceResolver)
-	{{- end}}
-	{{- if .HasPrompts}}
-	registerPromptHandlers(server, promptResolver)
+	registerPromptHandlers(server, resolver)
 	{{- end}}
 
 	return server
 }
 
-func registerToolHandlers(server *mcp.Server, toolResolver *{{.ResolverPackagePrefix}}ToolResolver) {
+func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 	{{- range .Tools}}
 	mcp.AddTool(
 		server,
@@ -64,7 +74,7 @@ func registerToolHandlers(server *mcp.Server, toolResolver *{{.ResolverPackagePr
 			OutputSchema: {{.OutputSchemaVar}},
 			{{- end}}
 		},
-		toolResolver.{{.HandlerName}},
+		resolver.{{.HandlerName}}Tool,
 	)
 
 	{{- end}}
@@ -72,7 +82,7 @@ func registerToolHandlers(server *mcp.Server, toolResolver *{{.ResolverPackagePr
 
 {{- if .HasResources}}
 
-func registerResourceHandlers(server *mcp.Server, resourceResolver *{{.ResolverPackagePrefix}}ResourceResolver) {
+func registerResourceHandlers(server *mcp.Server, resolver ResolverInterface) {
 	{{- range .Resources}}
 	{{- if .URI}}
 	server.AddResource(
@@ -84,7 +94,7 @@ func registerResourceHandlers(server *mcp.Server, resourceResolver *{{.ResolverP
 			MIMEType:    "{{.MimeType}}",
 			{{- end}}
 		},
-		resourceResolver.{{.HandlerName}},
+		resolver.{{.HandlerName}}Resource,
 	)
 
 	{{- else if .URITemplate}}
@@ -97,7 +107,7 @@ func registerResourceHandlers(server *mcp.Server, resourceResolver *{{.ResolverP
 			MIMEType:    "{{.MimeType}}",
 			{{- end}}
 		},
-		resourceResolver.{{.HandlerName}},
+		resolver.{{.HandlerName}}Resource,
 	)
 
 	{{- end}}
@@ -107,7 +117,7 @@ func registerResourceHandlers(server *mcp.Server, resourceResolver *{{.ResolverP
 
 {{- if .HasPrompts}}
 
-func registerPromptHandlers(server *mcp.Server, promptResolver *{{.ResolverPackagePrefix}}PromptResolver) {
+func registerPromptHandlers(server *mcp.Server, resolver ResolverInterface) {
 	{{- range .Prompts}}
 	mcputil.AddPrompt(
 		server,
@@ -126,7 +136,7 @@ func registerPromptHandlers(server *mcp.Server, promptResolver *{{.ResolverPacka
 			},
 			{{- end}}
 		},
-		promptResolver.{{.HandlerName}},
+		resolver.{{.HandlerName}}Prompt,
 	)
 	{{- end}}
 }

@@ -714,12 +714,12 @@ func (g *Generator) generateNewHandlersCode(handlerNames []string) (string, erro
 		handlerSet[name] = true
 	}
 
-	// Filter tools (HandlerName in data matches exactly now)
+	// Filter tools (HandlerName in data + "Tool" suffix should match required names)
 	if tools, ok := data["Tools"].([]map[string]interface{}); ok {
 		filteredTools := []map[string]interface{}{}
 		for _, tool := range tools {
 			if handlerName, ok := tool["HandlerName"].(string); ok {
-				if handlerSet[handlerName] {
+				if handlerSet[handlerName+"Tool"] {
 					filteredTools = append(filteredTools, tool)
 				}
 			}
@@ -727,12 +727,12 @@ func (g *Generator) generateNewHandlersCode(handlerNames []string) (string, erro
 		data["Tools"] = filteredTools
 	}
 
-	// Filter resources (HandlerName in data matches exactly now)
+	// Filter resources (HandlerName in data + "Resource" suffix should match required names)
 	if resources, ok := data["Resources"].([]map[string]interface{}); ok {
 		filteredResources := []map[string]interface{}{}
 		for _, resource := range resources {
 			if handlerName, ok := resource["HandlerName"].(string); ok {
-				if handlerSet[handlerName] {
+				if handlerSet[handlerName+"Resource"] {
 					filteredResources = append(filteredResources, resource)
 				}
 			}
@@ -741,12 +741,12 @@ func (g *Generator) generateNewHandlersCode(handlerNames []string) (string, erro
 		data["HasResources"] = len(filteredResources) > 0
 	}
 
-	// Filter prompts (HandlerName in data matches exactly now)
+	// Filter prompts (HandlerName in data + "Prompt" suffix should match required names)
 	if prompts, ok := data["Prompts"].([]map[string]interface{}); ok {
 		filteredPrompts := []map[string]interface{}{}
 		for _, prompt := range prompts {
 			if handlerName, ok := prompt["HandlerName"].(string); ok {
-				if handlerSet[handlerName] {
+				if handlerSet[handlerName+"Prompt"] {
 					filteredPrompts = append(filteredPrompts, prompt)
 				}
 			}
@@ -760,32 +760,35 @@ func (g *Generator) generateNewHandlersCode(handlerNames []string) (string, erro
 	handlersOnlyTmpl, err := template.New("handlers").Parse(`
 {{- range .Tools }}
 
-// {{ .HandlerName }} handles the {{ .Name }} tool
-// {{ .Description }}
-func (r *toolResolver) {{ .HandlerName }}(ctx context.Context, req *mcp.CallToolRequest{{ if .HasInputType }}, input *{{ .InputType }}{{ end }}) (*mcp.CallToolResult, map[string]any, error) {
-	// r.{{ $.ResolverType }} fields are available here
-	return nil, nil, fmt.Errorf("{{ .Name }} not implemented")
+{{- if .HasInputType }}
+func (r *{{ $.ResolverType }}) {{ .HandlerName }}Tool(ctx context.Context, req *mcp.CallToolRequest, input *{{ .InputType }}) (*mcp.CallToolResult, {{ if .HasOutputType }}{{ .OutputType }}{{ else }}map[string]any{{ end }}, error) {
+	return nil, {{ if .HasOutputType }}{{ .OutputType }}{}{{ else }}nil{{ end }}, fmt.Errorf("{{ .Name }} not implemented")
 }
+{{- else }}
+func (r *{{ $.ResolverType }}) {{ .HandlerName }}Tool(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, {{ if .HasOutputType }}{{ .OutputType }}{{ else }}map[string]any{{ end }}, error) {
+	return nil, {{ if .HasOutputType }}{{ .OutputType }}{}{{ else }}nil{{ end }}, fmt.Errorf("{{ .Name }} not implemented")
+}
+{{- end }}
 {{- end }}
 
 {{- range .Resources }}
 
-// {{ .HandlerName }} handles the {{ .Name }} resource
-// {{ .Description }}
-func (r *resourceResolver) {{ .HandlerName }}(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-	// r.{{ $.ResolverType }} fields are available here
+func (r *{{ $.ResolverType }}) {{ .HandlerName }}Resource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 	return nil, fmt.Errorf("{{ .Name }} not implemented")
 }
 {{- end }}
 
 {{- range .Prompts }}
 
-// {{ .HandlerName }} handles the {{ .Name }} prompt
-// {{ .Description }}
-func (r *promptResolver) {{ .HandlerName }}(ctx context.Context, req *mcp.GetPromptRequest{{ if .HasArgsType }}, args {{ .ArgsType }}{{ end }}) (*mcp.GetPromptResult, error) {
-	// r.{{ $.ResolverType }} fields are available here
+{{- if .HasArgsType }}
+func (r *{{ $.ResolverType }}) {{ .HandlerName }}Prompt(ctx context.Context, req *mcp.GetPromptRequest, args {{ .ArgsType }}) (*mcp.GetPromptResult, error) {
 	return nil, fmt.Errorf("{{ .Name }} not implemented")
 }
+{{- else }}
+func (r *{{ $.ResolverType }}) {{ .HandlerName }}Prompt(ctx context.Context, req *mcp.GetPromptRequest, args map[string]string) (*mcp.GetPromptResult, error) {
+	return nil, fmt.Errorf("{{ .Name }} not implemented")
+}
+{{- end }}
 {{- end }}
 `)
 	if err != nil {
@@ -805,15 +808,15 @@ func (g *Generator) getRequiredHandlerNames() []string {
 	var names []string
 
 	for _, tool := range g.spec.Tools {
-		names = append(names, toHandlerName(tool.Name))
+		names = append(names, toHandlerName(tool.Name)+"Tool")
 	}
 
 	for _, resource := range g.spec.Resources {
-		names = append(names, toHandlerName(resource.Name))
+		names = append(names, toHandlerName(resource.Name)+"Resource")
 	}
 
 	for _, prompt := range g.spec.Prompts {
-		names = append(names, toHandlerName(prompt.Name))
+		names = append(names, toHandlerName(prompt.Name)+"Prompt")
 	}
 
 	return names
@@ -823,11 +826,8 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 	// Compute type prefix if model package is different from exec package
 	modelPackage := g.config.Model.Package
 	execPackage := g.config.Exec.Package
-	resolverPackage := g.config.Resolver.Package
 	typePrefix := ""
 	modelImportPath := ""
-	resolverImportPath := ""
-	resolverPrefix := ""
 
 	// Server needs to import models if they're in a different package
 	if modelPackage != execPackage {
@@ -836,13 +836,6 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 
 		// Compute the full import path for the model package
 		modelImportPath = g.computeModelImportPath()
-	}
-
-	// Server needs to import resolver if it's in a different package
-	if resolverPackage != execPackage {
-		resolverImportPath = g.computeResolverImportPath()
-		// Use the resolver package name as prefix (e.g., "mcp_v1.")
-		resolverPrefix = resolverPackage + "."
 	}
 
 	tools := make([]map[string]interface{}, 0, len(g.spec.Tools))
@@ -952,17 +945,16 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 	}
 
 	data := map[string]interface{}{
-		"Package":              g.config.Exec.Package,
-		"ServerName":           g.spec.Info.Title,
-		"ServerVersion":        g.spec.Info.Version,
-		"ResolverType":         g.config.Resolver.Type,
-		"ResolverPackagePrefix": resolverPrefix,
-		"Tools":                tools,
-		"Resources":            resources,
-		"Prompts":              prompts,
-		"HasResources":         len(resources) > 0,
-		"HasPrompts":           len(prompts) > 0,
-		"HasTypedTools":        hasTypedTools,
+		"Package":       g.config.Exec.Package,
+		"ServerName":    g.spec.Info.Title,
+		"ServerVersion": g.spec.Info.Version,
+		"ResolverType":  g.config.Resolver.Type,
+		"Tools":         tools,
+		"Resources":     resources,
+		"Prompts":       prompts,
+		"HasResources":  len(resources) > 0,
+		"HasPrompts":    len(prompts) > 0,
+		"HasTypedTools": hasTypedTools,
 	}
 
 	// Add imports if packages are different from exec package
@@ -973,18 +965,7 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 			"Alias": "",
 		})
 	}
-	if resolverPackage != execPackage && resolverImportPath != "" {
-		// Add alias if the package name differs from the last component of the path
-		alias := ""
-		pathParts := strings.Split(resolverImportPath, "/")
-		if len(pathParts) > 0 && pathParts[len(pathParts)-1] != resolverPackage {
-			alias = resolverPackage
-		}
-		imports = append(imports, map[string]string{
-			"Path":  resolverImportPath,
-			"Alias": alias,
-		})
-	}
+	// Never import resolver package - use interfaces to avoid circular imports
 	if len(imports) > 0 {
 		data["Imports"] = imports
 	}

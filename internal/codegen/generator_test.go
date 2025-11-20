@@ -221,10 +221,10 @@ func TestGetRequiredHandlerNames(t *testing.T) {
 	}
 
 	expected := map[string]bool{
-		"CreateTask":    true,
-		"UpdateTask":    true,
-		"TaskResource":  true,
-		"HelpPrompt":    true,
+		"CreateTaskTool":       true,
+		"UpdateTaskTool":       true,
+		"TaskResourceResource": true,
+		"HelpPromptPrompt":     true,
 	}
 
 	for _, name := range got {
@@ -660,7 +660,7 @@ func TestFullGenerateWorkflow(t *testing.T) {
 	require.NoError(t, err, "Failed to read schema.resolvers.go")
 
 	resolversStr := string(resolversContent)
-	if !containsString(resolversStr, "func (r *ToolResolver) CreateEvent") {
+	if !containsString(resolversStr, "func (r *Resolver) CreateEvent") {
 		t.Error("schema.resolvers.go should contain CreateEvent handler")
 	}
 }
@@ -787,8 +787,8 @@ func TestGenerateNewHandlersCode(t *testing.T) {
 		},
 		{
 			name:         "single handler",
-			handlerNames: []string{"CreateEvent"},
-			wantContains: []string{"CreateEvent", "func (r *toolResolver) CreateEvent"},
+			handlerNames: []string{"CreateEventTool"},
+			wantContains: []string{"CreateEventTool", "func (r *Resolver) CreateEventTool"},
 			isEmpty:      false,
 		},
 	}
@@ -1283,7 +1283,7 @@ func (r *toolResolver) OldHandler(ctx context.Context, req *mcp.CallToolRequest)
 }
 `,
 			wantContains: []string{
-				"func (r *toolResolver) CreateEvent",
+				"func (r *Resolver) CreateEventTool",
 				"Orphaned: OldHandler",
 			},
 			expectUpdate: true,
@@ -1312,12 +1312,12 @@ type resourceResolver struct {
 	*Resolver
 }
 
-func (r *toolResolver) CreateEvent(ctx context.Context, req *mcp.CallToolRequest, input *Event) (*mcp.CallToolResult, map[string]any, error) {
+func (r *Resolver) CreateEventTool(ctx context.Context, req *mcp.CallToolRequest, input *Event) (*mcp.CallToolResult, map[string]any, error) {
 	return nil, nil, fmt.Errorf("create-event not implemented")
 }
 `,
 			wantContains: []string{
-				"func (r *toolResolver) CreateEvent",
+				"func (r *Resolver) CreateEventTool",
 			},
 			wantNotContains: []string{
 				"Orphaned Handlers",
