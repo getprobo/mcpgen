@@ -216,6 +216,20 @@ func TestTypeGeneratorCustomMappings(t *testing.T) {
 			wantImports: []string{"time"},
 			wantErr:     false,
 		},
+		{
+			name: "nullable time.Time from format with types array",
+			setupGen: func(g *TypeGenerator) {
+				// No custom mapping, should use format
+			},
+			schema: &config.Schema{
+				Types:  []string{"string", "null"},
+				Format: "date-time",
+			},
+			hint:        "ContractStartDate",
+			wantType:    "*time.Time",
+			wantImports: []string{"time"},
+			wantErr:     false,
+		},
 	}
 
 	for _, tt := range tests {

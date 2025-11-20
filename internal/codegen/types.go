@@ -307,7 +307,10 @@ func isNullableType(s *schema.Schema) (bool, *schema.Schema) {
 		}
 
 		if hasNull && otherType != "" && len(s.Types) == 2 {
-			syntheticSchema := &schema.Schema{Type: otherType}
+			syntheticSchema := &schema.Schema{
+				Type:   otherType,
+				Format: s.Format,
+			}
 			return true, syntheticSchema
 		}
 	}
