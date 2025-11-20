@@ -227,20 +227,27 @@ func (g *TypeGenerator) generateStruct(name string, s *schema.Schema, depth int)
 		propSchema := s.Properties[propName]
 		fieldName := toGoFieldName(propName)
 		hint := name + fieldName
+
+		isRequired := schema.IsRequired(s, propName)
+		isOmittable := schema.IsOmittable(propSchema)
+
+		// Validate that omittable is only used on nullable fields
+		if isOmittable {
+			isNullable, _ := isNullableType(propSchema)
+			if !isNullable {
+				return "", fmt.Errorf("field %s.%s has omittable annotation but is not nullable (omittable only works with nullable fields)", name, propName)
+			}
+		}
+
 		fieldType, err := g.goType(propSchema, hint)
 		if err != nil {
 			return "", fmt.Errorf("failed to generate field %s: %w", propName, err)
 		}
 
-		isRequired := schema.IsRequired(s, propName)
-		isOmittable := schema.IsOmittable(propSchema)
-
-		// Check if this field should be omittable (go.probo.inc/mcpgen/omittable annotation)
 		if isOmittable {
 			fieldType = fmt.Sprintf("mcp.Omittable[%s]", fieldType)
 			g.imports["go.probo.inc/mcpgen/mcp"] = true
 		} else if !isRequired && !isPointerType(fieldType) {
-			// Make non-required fields pointers (unless already a pointer or using Omittable)
 			fieldType = "*" + fieldType
 		}
 
@@ -354,6 +361,9 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 		goType, err := g.goType(baseType, hint)
 		if err != nil {
 			return "", err
+		}
+		if len(goType) > 0 && goType[0] == '*' {
+			return goType, nil
 		}
 		return "*" + goType, nil
 	}

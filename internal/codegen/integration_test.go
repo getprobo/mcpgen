@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"go.probo.inc/mcpgen/internal/config"
@@ -46,16 +47,12 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 
 	customTypes := []string{"Timestamp", "UUID", "Decimal", "Metadata", "Duration"}
 	for _, typeName := range customTypes {
-		if containsTypeDefinition(codeStr, "type "+typeName+" ") {
-			t.Errorf("Should not generate type %q (it has go.probo.inc/mcpgen/type annotation)", typeName)
-		}
+		assert.NotContains(t, codeStr, "type "+typeName+" ")
 	}
 
 	regularTypes := []string{"Task", "OptionalFields", "Project", "UpdateTaskInput"}
 	for _, typeName := range regularTypes {
-		if !containsTypeDefinition(codeStr, "type "+typeName) {
-			t.Errorf("Should generate type %q", typeName)
-		}
+		assert.Contains(t, codeStr, "type "+typeName)
 	}
 
 	expectedImports := []string{
@@ -66,34 +63,16 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 		"go.probo.inc/mcpgen/mcp",
 	}
 	for _, imp := range expectedImports {
-		if !containsImport(codeStr, imp) {
-			t.Errorf("Should import %q", imp)
-		}
+		assert.Contains(t, codeStr, `"`+imp+`"`)
 	}
 
-	if !containsString(codeStr, "ID        uuid.UUID") {
-		t.Error("Task.ID should use uuid.UUID")
-	}
-	if !containsString(codeStr, "CreatedAt time.Time") {
-		t.Error("Task.CreatedAt should use time.Time")
-	}
-	if !containsString(codeStr, "UpdatedAt *time.Time") {
-		t.Error("Task.UpdatedAt should use *time.Time (nullable)")
-	}
-	// Check omittable fields
-	if !containsString(codeStr, "mcp.Omittable[string]") {
-		t.Error("UpdateTaskInput.Title should use mcp.Omittable[string]")
-	}
-	if !containsString(codeStr, "mcp.Omittable[*Status]") {
-		t.Error("UpdateTaskInput.Status should use mcp.Omittable[*Status]")
-	}
-	if !containsString(codeStr, "mcp.Omittable[int64]") {
-		t.Error("UpdateTaskInput.Priority should use mcp.Omittable[int64]")
-	}
-	if !containsString(codeStr, "mcp.Omittable[[]string]") {
-		t.Error("UpdateTaskInput.Tags should use mcp.Omittable[[]string]")
-	}
-	// Note: time.Duration test skipped - it's a type alias that may not appear in generated code
+	assert.Contains(t, codeStr, "ID        uuid.UUID")
+	assert.Contains(t, codeStr, "CreatedAt time.Time")
+	assert.Contains(t, codeStr, "UpdatedAt *time.Time")
+	assert.Contains(t, codeStr, "mcp.Omittable[*string]")
+	assert.Contains(t, codeStr, "mcp.Omittable[*Status]")
+	assert.Contains(t, codeStr, "mcp.Omittable[*int64]")
+	assert.Contains(t, codeStr, "mcp.Omittable[*[]string]")
 }
 
 func TestGenerateWithConfigBasedTypes(t *testing.T) {
@@ -137,14 +116,10 @@ func TestGenerateWithConfigBasedTypes(t *testing.T) {
 
 	customTypes := []string{"Timestamp", "UUID", "User"}
 	for _, typeName := range customTypes {
-		if containsTypeDefinition(codeStr, "type "+typeName+" ") {
-			t.Errorf("Should not generate type %q (it's in config models)", typeName)
-		}
+		assert.NotContains(t, codeStr, "type "+typeName+" ")
 	}
 
-	if !containsTypeDefinition(codeStr, "type Event struct") {
-		t.Error("Should generate Event type")
-	}
+	assert.Contains(t, codeStr, "type Event struct")
 
 	expectedImports := []string{
 		"time",
@@ -152,20 +127,12 @@ func TestGenerateWithConfigBasedTypes(t *testing.T) {
 		"github.com/myapp/models",
 	}
 	for _, imp := range expectedImports {
-		if !containsImport(codeStr, imp) {
-			t.Errorf("Should import %q", imp)
-		}
+		assert.Contains(t, codeStr, `"`+imp+`"`)
 	}
 
-	if !containsString(codeStr, "ID        uuid.UUID") {
-		t.Error("Event.ID should use uuid.UUID")
-	}
-	if !containsString(codeStr, "CreatedAt time.Time") {
-		t.Error("Event.CreatedAt should use time.Time")
-	}
-	if !containsString(codeStr, "Owner     models.User") {
-		t.Error("Event.Owner should use models.User")
-	}
+	assert.Contains(t, codeStr, "ID        uuid.UUID")
+	assert.Contains(t, codeStr, "CreatedAt time.Time")
+	assert.Contains(t, codeStr, "Owner     *models.User")
 }
 
 func TestGenerateAllPrimitives(t *testing.T) {

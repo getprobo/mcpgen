@@ -115,21 +115,29 @@ components:
           $ref: "#/components/schemas/UUID"
           description: Task ID to update
         title:
-          type: string
+          anyOf:
+            - type: string
+            - type: "null"
           description: New title (omit to keep unchanged, null to clear)
           go.probo.inc/mcpgen/omittable: true
         status:
-          $ref: "#/components/schemas/Status"
+          anyOf:
+            - $ref: "#/components/schemas/Status"
+            - type: "null"
           description: New status (omit to keep unchanged)
           go.probo.inc/mcpgen/omittable: true
         priority:
-          type: integer
+          anyOf:
+            - type: integer
+            - type: "null"
           description: New priority (omit to keep unchanged, null to clear)
           go.probo.inc/mcpgen/omittable: true
         tags:
-          type: array
-          items:
-            type: string
+          anyOf:
+            - type: array
+              items:
+                type: string
+            - type: "null"
           description: New tags (omit to keep unchanged, null to clear)
           go.probo.inc/mcpgen/omittable: true
       required: [id]

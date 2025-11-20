@@ -822,7 +822,7 @@ func TestGenerateStruct(t *testing.T) {
 				"// A user object",
 				"type User struct",
 				"Name string",
-				"Age int64",
+				"Age *int64", // Age is not required, so it's a pointer
 				"`json:\"name\"`",
 				"`json:\"age,omitempty\"`",
 			},
@@ -857,6 +857,43 @@ func TestGenerateStruct(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "struct with omittable on non-nullable field - should error",
+			schema: &config.Schema{
+				Type: "object",
+				Properties: map[string]*config.Schema{
+					"name": {
+						Type: "string",
+						Extra: map[string]any{
+							"go.probo.inc/mcpgen/omittable": true,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "struct with omittable on nullable field - should succeed",
+			schema: &config.Schema{
+				Type: "object",
+				Properties: map[string]*config.Schema{
+					"description": {
+						AnyOf: []*config.Schema{
+							{Type: "string"},
+							{Type: "null"},
+						},
+						Extra: map[string]any{
+							"go.probo.inc/mcpgen/omittable": true,
+						},
+					},
+				},
+			},
+			want: []string{
+				"type UpdateInput struct",
+				"Description mcp.Omittable[*string]",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -867,19 +904,19 @@ func TestGenerateStruct(t *testing.T) {
 				typeName = tt.schema.Title
 			} else if tt.name == "struct with no description or title" {
 				typeName = "Anonymous"
+			} else if tt.name == "struct with omittable on nullable field - should succeed" {
+				typeName = "UpdateInput"
 			}
 
 			got, err := gen.generateStruct(typeName, tt.schema, 0)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
 
 			for _, wantStr := range tt.want {
-				if !containsString(got, wantStr) {
-					t.Errorf("generateStruct() should contain %q, got:\n%s", wantStr, got)
-				}
+				assert.Contains(t, got, wantStr)
 			}
 		})
 	}
