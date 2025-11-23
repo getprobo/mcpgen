@@ -715,7 +715,7 @@ func TestGoTypeEdgeCases(t *testing.T) {
 				Type: "integer",
 			},
 			hint:    "Count",
-			want:    "int64",
+			want:    "int",
 			wantErr: false,
 		},
 		{
@@ -836,7 +836,7 @@ func TestGenerateStruct(t *testing.T) {
 				"// A user object",
 				"type User struct",
 				"Name string",
-				"Age *int64", // Age is not required, so it's a pointer
+				"Age *int", // Age is not required, so it's a pointer
 				"`json:\"name\"`",
 				"`json:\"age,omitempty\"`",
 			},

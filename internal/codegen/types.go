@@ -390,7 +390,7 @@ func (g *TypeGenerator) goType(s *schema.Schema, hint string) (string, error) {
 	case "number":
 		return "float64", nil
 	case "integer":
-		return "int64", nil
+		return "int", nil
 	case "boolean":
 		return "bool", nil
 	case "array":

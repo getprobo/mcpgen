@@ -71,7 +71,7 @@ func TestGenerateWithCustomTypes(t *testing.T) {
 	assert.Contains(t, codeStr, "UpdatedAt *time.Time")
 	assert.Contains(t, codeStr, "mcp.Omittable[*string]")
 	assert.Contains(t, codeStr, "mcp.Omittable[*Status]")
-	assert.Contains(t, codeStr, "mcp.Omittable[*int64]")
+	assert.Contains(t, codeStr, "mcp.Omittable[*int]")
 	assert.Contains(t, codeStr, "mcp.Omittable[*[]string]")
 }
 
