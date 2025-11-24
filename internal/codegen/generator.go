@@ -847,6 +847,14 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 			"HandlerName": toHandlerName(tool.Name),
 		}
 
+		// Add hints if present
+		if tool.Hints != nil {
+			toolData["Readonly"] = tool.Hints.Readonly
+			toolData["Destructive"] = tool.Hints.Destructive
+			toolData["Idempotent"] = tool.Hints.Idempotent
+			toolData["OpenWorld"] = tool.Hints.OpenWorld
+		}
+
 		// Add input type information and schema code
 		if tool.InputSchema != nil {
 			inputTypeName := typePrefix + toPascalCase(tool.Name) + "Input"
@@ -903,6 +911,7 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 			"Description": resource.Description,
 			"HandlerName": toHandlerName(resource.Name),
 			"MimeType":    resource.MimeType,
+			"Readonly":    resource.Readonly,
 		}
 
 		if resource.URI != "" {
@@ -998,6 +1007,14 @@ func (g *Generator) buildResolverTemplateData() map[string]interface{} {
 			"HandlerName": toHandlerName(tool.Name),
 		}
 
+		// Add hints if present
+		if tool.Hints != nil {
+			toolData["Readonly"] = tool.Hints.Readonly
+			toolData["Destructive"] = tool.Hints.Destructive
+			toolData["Idempotent"] = tool.Hints.Idempotent
+			toolData["OpenWorld"] = tool.Hints.OpenWorld
+		}
+
 		// Add input type information
 		if tool.InputSchema != nil {
 			inputTypeName := typePrefix + toPascalCase(tool.Name) + "Input"
@@ -1023,6 +1040,7 @@ func (g *Generator) buildResolverTemplateData() map[string]interface{} {
 			"Description": resource.Description,
 			"HandlerName": toHandlerName(resource.Name),
 			"MimeType":    resource.MimeType,
+			"Readonly":    resource.Readonly,
 		}
 
 		if resource.URI != "" {

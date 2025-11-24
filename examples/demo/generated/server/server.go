@@ -3,15 +3,29 @@
 package server
 
 import (
-	mcp_v1 "demo/generated"
+	"context"
 	"demo/generated/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	mcputil "go.probo.inc/mcpgen/mcp"
 )
 
+// ResolverInterface defines the interface that must be implemented by the parent resolver
+type ResolverInterface interface {
+	CalculateTool(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (*mcp.CallToolResult, types.CalculateOutput, error)
+	Calculate2Tool(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (*mcp.CallToolResult, map[string]any, error)
+	CreateTaskTool(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (*mcp.CallToolResult, types.CreateTaskOutput, error)
+	SearchTool(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (*mcp.CallToolResult, map[string]any, error)
+	GetHistoryTool(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (*mcp.CallToolResult, map[string]any, error)
+	DemoREADMEResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
+	TaskDetailsResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
+	LastResultResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
+	TaskHelpPrompt(ctx context.Context, req *mcp.GetPromptRequest, args types.TaskHelpArgs) (*mcp.GetPromptResult, error)
+	MathHelpPrompt(ctx context.Context, req *mcp.GetPromptRequest, args types.MathHelpArgs) (*mcp.GetPromptResult, error)
+}
+
 // New creates a new MCP server instance with all handlers registered.
 // Returns a fully configured *mcp.Server ready to be used with any transport.
-func New(resolver *mcp_v1.Resolver) *mcp.Server {
+func New(resolver ResolverInterface) *mcp.Server {
 	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "demo-server",
@@ -20,18 +34,14 @@ func New(resolver *mcp_v1.Resolver) *mcp.Server {
 		nil,
 	)
 
-	toolResolver := &mcp_v1.ToolResolver{resolver}
-	resourceResolver := &mcp_v1.ResourceResolver{resolver}
-	promptResolver := &mcp_v1.PromptResolver{resolver}
-
-	registerToolHandlers(server, toolResolver)
-	registerResourceHandlers(server, resourceResolver)
-	registerPromptHandlers(server, promptResolver)
+	registerToolHandlers(server, resolver)
+	registerResourceHandlers(server, resolver)
+	registerPromptHandlers(server, resolver)
 
 	return server
 }
 
-func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver) {
+func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 	mcp.AddTool(
 		server,
 		&mcp.Tool{
@@ -39,8 +49,11 @@ func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver)
 			Description:  "Perform basic arithmetic operations",
 			InputSchema:  types.CalculateToolInputSchema,
 			OutputSchema: types.CalculateToolOutputSchema,
+			Annotations: &mcp.ToolAnnotations{
+				IdempotentHint: true,
+			},
 		},
-		toolResolver.Calculate,
+		resolver.CalculateTool,
 	)
 	mcp.AddTool(
 		server,
@@ -48,8 +61,11 @@ func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver)
 			Name:        "calculate2",
 			Description: "Perform basic arithmetic operations",
 			InputSchema: types.Calculate2ToolInputSchema,
+			Annotations: &mcp.ToolAnnotations{
+				IdempotentHint: true,
+			},
 		},
-		toolResolver.Calculate2,
+		resolver.Calculate2Tool,
 	)
 	mcp.AddTool(
 		server,
@@ -59,7 +75,7 @@ func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver)
 			InputSchema:  types.CreateTaskToolInputSchema,
 			OutputSchema: types.CreateTaskToolOutputSchema,
 		},
-		toolResolver.CreateTask,
+		resolver.CreateTaskTool,
 	)
 	mcp.AddTool(
 		server,
@@ -67,8 +83,12 @@ func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver)
 			Name:        "search",
 			Description: "Search for items",
 			InputSchema: types.SearchToolInputSchema,
+			Annotations: &mcp.ToolAnnotations{
+				ReadOnlyHint:   true,
+				IdempotentHint: true,
+			},
 		},
-		toolResolver.Search,
+		resolver.SearchTool,
 	)
 	mcp.AddTool(
 		server,
@@ -76,12 +96,20 @@ func registerToolHandlers(server *mcp.Server, toolResolver *mcp_v1.ToolResolver)
 			Name:        "get_history",
 			Description: "Get calculation history",
 			InputSchema: types.GetHistoryToolInputSchema,
+			Annotations: &mcp.ToolAnnotations{
+				ReadOnlyHint:   true,
+				IdempotentHint: true,
+			},
 		},
-		toolResolver.GetHistory,
+		resolver.GetHistoryTool,
 	)
 }
 
-func registerResourceHandlers(server *mcp.Server, resourceResolver *mcp_v1.ResourceResolver) {
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func registerResourceHandlers(server *mcp.Server, resolver ResolverInterface) {
 	server.AddResource(
 		&mcp.Resource{
 			URI:         "docs://readme",
@@ -89,7 +117,7 @@ func registerResourceHandlers(server *mcp.Server, resourceResolver *mcp_v1.Resou
 			Description: "Documentation for the demo server",
 			MIMEType:    "text/markdown",
 		},
-		resourceResolver.DemoREADME,
+		resolver.DemoREADMEResource,
 	)
 	server.AddResourceTemplate(
 		&mcp.ResourceTemplate{
@@ -98,7 +126,7 @@ func registerResourceHandlers(server *mcp.Server, resourceResolver *mcp_v1.Resou
 			Description: "Get details for a specific task",
 			MIMEType:    "application/json",
 		},
-		resourceResolver.TaskDetails,
+		resolver.TaskDetailsResource,
 	)
 	server.AddResourceTemplate(
 		&mcp.ResourceTemplate{
@@ -107,11 +135,11 @@ func registerResourceHandlers(server *mcp.Server, resourceResolver *mcp_v1.Resou
 			Description: "Get the last result for a specific operation",
 			MIMEType:    "application/json",
 		},
-		resourceResolver.LastResult,
+		resolver.LastResultResource,
 	)
 }
 
-func registerPromptHandlers(server *mcp.Server, promptResolver *mcp_v1.PromptResolver) {
+func registerPromptHandlers(server *mcp.Server, resolver ResolverInterface) {
 	mcputil.AddPrompt(
 		server,
 		&mcp.Prompt{
@@ -130,7 +158,7 @@ func registerPromptHandlers(server *mcp.Server, promptResolver *mcp_v1.PromptRes
 				},
 			},
 		},
-		promptResolver.TaskHelp,
+		resolver.TaskHelpPrompt,
 	)
 	mcputil.AddPrompt(
 		server,
@@ -145,6 +173,6 @@ func registerPromptHandlers(server *mcp.Server, promptResolver *mcp_v1.PromptRes
 				},
 			},
 		},
-		promptResolver.MathHelp,
+		resolver.MathHelpPrompt,
 	)
 }

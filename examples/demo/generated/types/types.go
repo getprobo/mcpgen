@@ -586,7 +586,7 @@ type CreateTaskOutput struct {
 // GetHistoryInput represents the schema
 type GetHistoryInput struct {
 	// Maximum number of history entries
-	Limit *int64 `json:"limit,omitempty"`
+	Limit *int `json:"limit,omitempty"`
 }
 
 // LastResultContent represents the schema
@@ -616,7 +616,7 @@ type SearchInput struct {
 	// Filter results
 	Filter *SearchInputFilter `json:"filter,omitempty"`
 	// Maximum number of results
-	Limit *int64 `json:"limit,omitempty"`
+	Limit *int `json:"limit,omitempty"`
 	// Search query
 	Query string `json:"query"`
 }

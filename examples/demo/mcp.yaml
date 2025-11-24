@@ -89,9 +89,10 @@ tools:
   # Tool 1: With enum in input schema
   - name: calculate
     description: Perform basic arithmetic operations
-    readonly: false
-    destructive: false
-    idempotent: true
+    hints:
+      readonly: false
+      destructive: false
+      idempotent: true
     annotations:
       category: math
       complexity: low
@@ -102,9 +103,10 @@ tools:
 
   - name: calculate2
     description: Perform basic arithmetic operations
-    readonly: false
-    destructive: false
-    idempotent: true
+    hints:
+      readonly: false
+      destructive: false
+      idempotent: true
     annotations:
       category: math
       complexity: low
@@ -114,9 +116,10 @@ tools:
   # Tool 2: With complex typed input
   - name: create_task
     description: Create a new task
-    readonly: false
-    destructive: false
-    idempotent: false
+    hints:
+      readonly: false
+      destructive: false
+      idempotent: false
     inputSchema:
       $ref: "#/components/schemas/TaskInput"
     outputSchema:
@@ -125,8 +128,9 @@ tools:
   # Tool 3: With inline schema
   - name: search
     description: Search for items
-    readonly: true
-    idempotent: true
+    hints:
+      readonly: true
+      idempotent: true
     inputSchema:
       type: object
       properties:
@@ -146,8 +150,9 @@ tools:
   # Tool 4: Simple schema
   - name: get_history
     description: Get calculation history
-    readonly: true
-    idempotent: true
+    hints:
+      readonly: true
+      idempotent: true
     inputSchema:
       type: object
       properties:

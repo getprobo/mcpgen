@@ -62,6 +62,7 @@ func New(resolver ResolverInterface) *mcp.Server {
 
 func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 	{{- range .Tools}}
+	{{- $hasAnnotations := or .Readonly .Destructive .Idempotent .OpenWorld}}
 	mcp.AddTool(
 		server,
 		&mcp.Tool{
@@ -73,11 +74,31 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 			{{- if .HasOutputType}}
 			OutputSchema: {{.OutputSchemaVar}},
 			{{- end}}
+			{{- if $hasAnnotations}}
+			Annotations: &mcp.ToolAnnotations{
+				{{- if .Readonly}}
+				ReadOnlyHint: true,
+				{{- end}}
+				{{- if .Destructive}}
+				DestructiveHint: boolPtr(true),
+				{{- end}}
+				{{- if .Idempotent}}
+				IdempotentHint: true,
+				{{- end}}
+				{{- if .OpenWorld}}
+				OpenWorldHint: boolPtr(true),
+				{{- end}}
+			},
+			{{- end}}
 		},
 		resolver.{{.HandlerName}}Tool,
 	)
 
 	{{- end}}
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 {{- if .HasResources}}

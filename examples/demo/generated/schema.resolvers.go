@@ -85,3 +85,37 @@ func (r *PromptResolver) MathHelp(ctx context.Context, req *mcp.GetPromptRequest
 	// r.Resolver fields are available here
 	return nil, fmt.Errorf("math_help not implemented")
 }
+
+func (r *Resolver) CalculateTool(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (*mcp.CallToolResult, types.CalculateOutput, error) {
+	return nil, types.CalculateOutput{}, fmt.Errorf("calculate not implemented")
+}
+func (r *Resolver) Calculate2Tool(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (*mcp.CallToolResult, map[string]any, error) {
+	return nil, nil, fmt.Errorf("calculate2 not implemented")
+}
+func (r *Resolver) CreateTaskTool(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (*mcp.CallToolResult, types.CreateTaskOutput, error) {
+	return nil, types.CreateTaskOutput{}, fmt.Errorf("create_task not implemented")
+}
+func (r *Resolver) SearchTool(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (*mcp.CallToolResult, map[string]any, error) {
+	return nil, nil, fmt.Errorf("search not implemented")
+}
+func (r *Resolver) GetHistoryTool(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (*mcp.CallToolResult, map[string]any, error) {
+	return nil, nil, fmt.Errorf("get_history not implemented")
+}
+
+func (r *Resolver) DemoREADMEResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	return nil, fmt.Errorf("Demo README not implemented")
+}
+
+func (r *Resolver) TaskDetailsResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	return nil, fmt.Errorf("Task Details not implemented")
+}
+
+func (r *Resolver) LastResultResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	return nil, fmt.Errorf("Last Result not implemented")
+}
+func (r *Resolver) TaskHelpPrompt(ctx context.Context, req *mcp.GetPromptRequest, args types.TaskHelpArgs) (*mcp.GetPromptResult, error) {
+	return nil, fmt.Errorf("task_help not implemented")
+}
+func (r *Resolver) MathHelpPrompt(ctx context.Context, req *mcp.GetPromptRequest, args types.MathHelpArgs) (*mcp.GetPromptResult, error) {
+	return nil, fmt.Errorf("math_help not implemented")
+}

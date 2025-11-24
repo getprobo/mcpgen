@@ -152,9 +152,10 @@ components:
 tools:
   - name: example_tool
     description: An example tool that processes messages
-    readonly: false
-    destructive: false
-    idempotent: true
+    hints:
+      readonly: false
+      destructive: false
+      idempotent: true
     inputSchema:
       $ref: "#/components/schemas/ExampleInput"
 
