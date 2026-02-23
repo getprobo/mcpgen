@@ -255,6 +255,7 @@ func (g *Generator) resolveAllRefs(s *config.Schema) (*config.Schema, error) {
 
 	result := &config.Schema{
 		Type:             s.Type,
+		Types:            s.Types,
 		Format:           s.Format,
 		Description:      s.Description,
 		Default:          s.Default,
