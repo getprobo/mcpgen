@@ -25,7 +25,9 @@ type ResolverInterface interface {
 
 // New creates a new MCP server instance with all handlers registered.
 // Returns a fully configured *mcp.Server ready to be used with any transport.
-func New(resolver ResolverInterface) *mcp.Server {
+func New(resolver ResolverInterface, opts ...mcputil.Option) *mcp.Server {
+	o := mcputil.ApplyOptions(opts)
+
 	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "demo-server",
@@ -34,14 +36,14 @@ func New(resolver ResolverInterface) *mcp.Server {
 		nil,
 	)
 
-	registerToolHandlers(server, resolver)
+	registerToolHandlers(server, resolver, &o)
 	registerResourceHandlers(server, resolver)
 	registerPromptHandlers(server, resolver)
 
 	return server
 }
 
-func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
+func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *mcputil.Options) {
 	mcp.AddTool(
 		server,
 		&mcp.Tool{
@@ -53,7 +55,14 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 				IdempotentHint: true,
 			},
 		},
-		resolver.CalculateTool,
+		func(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (result *mcp.CallToolResult, output types.CalculateOutput, err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = opts.RecoverFunc(ctx, r)
+				}
+			}()
+			return resolver.CalculateTool(ctx, req, input)
+		},
 	)
 	mcp.AddTool(
 		server,
@@ -65,7 +74,14 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 				IdempotentHint: true,
 			},
 		},
-		resolver.Calculate2Tool,
+		func(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (result *mcp.CallToolResult, output map[string]any, err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = opts.RecoverFunc(ctx, r)
+				}
+			}()
+			return resolver.Calculate2Tool(ctx, req, input)
+		},
 	)
 	mcp.AddTool(
 		server,
@@ -75,7 +91,14 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 			InputSchema:  types.CreateTaskToolInputSchema,
 			OutputSchema: types.CreateTaskToolOutputSchema,
 		},
-		resolver.CreateTaskTool,
+		func(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (result *mcp.CallToolResult, output types.CreateTaskOutput, err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = opts.RecoverFunc(ctx, r)
+				}
+			}()
+			return resolver.CreateTaskTool(ctx, req, input)
+		},
 	)
 	mcp.AddTool(
 		server,
@@ -88,7 +111,14 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 				IdempotentHint: true,
 			},
 		},
-		resolver.SearchTool,
+		func(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (result *mcp.CallToolResult, output map[string]any, err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = opts.RecoverFunc(ctx, r)
+				}
+			}()
+			return resolver.SearchTool(ctx, req, input)
+		},
 	)
 	mcp.AddTool(
 		server,
@@ -101,7 +131,14 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface) {
 				IdempotentHint: true,
 			},
 		},
-		resolver.GetHistoryTool,
+		func(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (result *mcp.CallToolResult, output map[string]any, err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = opts.RecoverFunc(ctx, r)
+				}
+			}()
+			return resolver.GetHistoryTool(ctx, req, input)
+		},
 	)
 }
 
