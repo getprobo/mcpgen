@@ -902,6 +902,11 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 			toolData["OutputSchemaCode"] = schemaCode
 		}
 
+		if len(tool.OAuthScopes) > 0 {
+			toolData["OAuthScopesLiteral"] = formatOAuthScopesLiteral(tool.OAuthScopes)
+			toolData["OutputZeroValue"] = toolOutputZeroValue(toolData)
+		}
+
 		tools = append(tools, toolData)
 	}
 
@@ -1285,4 +1290,23 @@ func parseTypeMapping(modelStr string) *CustomTypeMapping {
 	}
 
 	return mapping
+}
+
+func formatOAuthScopesLiteral(scopes []string) string {
+	parts := make([]string, len(scopes))
+	for i, scope := range scopes {
+		parts[i] = `"` + scope + `"`
+	}
+
+	return "[]string{" + strings.Join(parts, ", ") + "}"
+}
+
+func toolOutputZeroValue(toolData map[string]interface{}) string {
+	if hasOutputType, ok := toolData["HasOutputType"].(bool); ok && hasOutputType {
+		if outputType, ok := toolData["OutputType"].(string); ok {
+			return outputType + "{}"
+		}
+	}
+
+	return "map[string]any{}"
 }

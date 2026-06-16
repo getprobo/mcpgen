@@ -73,6 +73,7 @@ type Tool struct {
 	InputSchema  *Schema           `yaml:"inputSchema" json:"inputSchema"`
 	OutputSchema *Schema           `yaml:"outputSchema,omitempty" json:"outputSchema,omitempty"`
 	Hints        *ToolHints        `yaml:"hints,omitempty" json:"hints,omitempty"`
+	OAuthScopes  []string          `yaml:"oauthScopes,omitempty" json:"oauthScopes,omitempty"`
 	Annotations  map[string]string `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 	Handler      string            `yaml:"handler,omitempty" json:"handler,omitempty"`
 }

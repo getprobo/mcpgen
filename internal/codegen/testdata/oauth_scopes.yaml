@@ -1,0 +1,30 @@
+info:
+  title: OAuth Scope Test Server
+  version: 1.0.0
+
+components:
+  schemas:
+    ListItemsInput:
+      type: object
+    ListItemsOutput:
+      type: object
+    CreateItemInput:
+      type: object
+    CreateItemOutput:
+      type: object
+
+tools:
+  - name: listItems
+    description: List items
+    oauthScopes:
+      - v1:document:read
+    inputSchema:
+      $ref: "#/components/schemas/ListItemsInput"
+    outputSchema:
+      $ref: "#/components/schemas/ListItemsOutput"
+  - name: createItem
+    description: Create an item
+    inputSchema:
+      $ref: "#/components/schemas/CreateItemInput"
+    outputSchema:
+      $ref: "#/components/schemas/CreateItemOutput"

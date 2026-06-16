@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
+
+var oauthScopePattern = regexp.MustCompile(`^v1:[a-z0-9-]+(:read)?$`)
 
 type MCPSpec struct {
 	Info       ServerInfo `yaml:"info" json:"info"`
@@ -68,6 +71,14 @@ func (s *MCPSpec) Validate() error {
 		}
 		if tool.InputSchema == nil {
 			return fmt.Errorf("tools[%d].inputSchema is required", i)
+		}
+		for j, scope := range tool.OAuthScopes {
+			if scope == "" {
+				return fmt.Errorf("tools[%d].oauthScopes[%d] must not be empty", i, j)
+			}
+			if !oauthScopePattern.MatchString(scope) {
+				return fmt.Errorf("tools[%d].oauthScopes[%d] has invalid format %q", i, j, scope)
+			}
 		}
 	}
 

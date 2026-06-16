@@ -1385,3 +1385,41 @@ func (r *Resolver) CreateEventTool(ctx context.Context, req *mcp.CallToolRequest
 	}
 }
 
+func TestGenerateServerOAuthScopeGate(t *testing.T) {
+	t.Parallel()
+
+	specPath := filepath.Join("testdata", "oauth_scopes.yaml")
+	spec, err := config.LoadMCPSpec(specPath)
+	require.NoError(t, err)
+
+	cfg := &config.Config{
+		Spec:   specPath,
+		Output: t.TempDir(),
+		Exec: config.ExecConfig{
+			Package:  "server",
+			Filename: "server.go",
+		},
+		Model: config.ModelConfig{
+			Package:  "types",
+			Filename: "types.go",
+		},
+		Resolver: config.ResolverConfig{
+			Package:  "resolver",
+			Filename: "resolver.go",
+			Type:     "Resolver",
+			Preserve: false,
+		},
+	}
+
+	gen := New(cfg, spec)
+	require.NoError(t, gen.Generate())
+
+	serverPath := filepath.Join(cfg.Output, "server.go")
+	content, err := os.ReadFile(serverPath)
+	require.NoError(t, err)
+
+	code := string(content)
+	assert.Contains(t, code, `opts.OAuthScopeGate(ctx, []string{"v1:document:read"})`)
+	assert.NotContains(t, code, `opts.OAuthScopeGate(ctx, []string{})`)
+}
+

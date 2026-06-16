@@ -95,6 +95,11 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 					err = opts.RecoverFunc(ctx, r)
 				}
 			}()
+			{{- if .OAuthScopesLiteral}}
+			if err := opts.OAuthScopeGate(ctx, {{.OAuthScopesLiteral}}); err != nil {
+				return nil, {{.OutputZeroValue}}, err
+			}
+			{{- end}}
 			return resolver.{{.HandlerName}}Tool(ctx, req, input)
 		},
 	)

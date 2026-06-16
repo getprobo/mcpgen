@@ -36,7 +36,8 @@ type Option func(*Options)
 
 // Options holds configuration for the generated MCP server.
 type Options struct {
-	RecoverFunc RecoverFunc
+	RecoverFunc    RecoverFunc
+	OAuthScopeGate OAuthScopeGateFunc
 }
 
 // WithRecoverFunc sets the panic recover function for tool handlers.
@@ -58,6 +59,9 @@ func ApplyOptions(opts []Option) Options {
 	}
 	if o.RecoverFunc == nil {
 		o.RecoverFunc = DefaultRecoverFunc
+	}
+	if o.OAuthScopeGate == nil {
+		o.OAuthScopeGate = DefaultOAuthScopeGate
 	}
 	return o
 }
