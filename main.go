@@ -151,6 +151,7 @@ components:
 # MCP Tools
 tools:
   - name: example_tool
+    title: Example Tool
     description: An example tool that processes messages
     hints:
       readonly: false

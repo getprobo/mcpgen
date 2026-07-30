@@ -844,12 +844,14 @@ func (g *Generator) buildServerTemplateData() map[string]interface{} {
 	for _, tool := range g.spec.Tools {
 		toolData := map[string]interface{}{
 			"Name":        tool.Name,
+			"Title":       tool.Title,
 			"Description": tool.Description,
 			"HandlerName": toHandlerName(tool.Name),
 		}
 
 		// Add hints if present
 		if tool.Hints != nil {
+			toolData["HasHints"] = true
 			toolData["Readonly"] = tool.Hints.Readonly
 			toolData["Destructive"] = tool.Hints.Destructive
 			toolData["Idempotent"] = tool.Hints.Idempotent
@@ -1004,12 +1006,14 @@ func (g *Generator) buildResolverTemplateData() map[string]interface{} {
 	for _, tool := range g.spec.Tools {
 		toolData := map[string]interface{}{
 			"Name":        tool.Name,
+			"Title":       tool.Title,
 			"Description": tool.Description,
 			"HandlerName": toHandlerName(tool.Name),
 		}
 
 		// Add hints if present
 		if tool.Hints != nil {
+			toolData["HasHints"] = true
 			toolData["Readonly"] = tool.Hints.Readonly
 			toolData["Destructive"] = tool.Hints.Destructive
 			toolData["Idempotent"] = tool.Hints.Idempotent

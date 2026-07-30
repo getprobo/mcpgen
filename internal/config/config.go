@@ -69,6 +69,7 @@ type ToolHints struct {
 
 type Tool struct {
 	Name         string            `yaml:"name" json:"name"`
+	Title        string            `yaml:"title,omitempty" json:"title,omitempty"`
 	Description  string            `yaml:"description,omitempty" json:"description,omitempty"`
 	InputSchema  *Schema           `yaml:"inputSchema" json:"inputSchema"`
 	OutputSchema *Schema           `yaml:"outputSchema,omitempty" json:"outputSchema,omitempty"`

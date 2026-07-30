@@ -60,11 +60,14 @@ func New(resolver ResolverInterface, opts ...mcputil.Option) *mcp.Server {
 
 func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *mcputil.Options) {
 	{{- range .Tools}}
-	{{- $hasAnnotations := or .Readonly .Destructive .Idempotent .OpenWorld}}
+	{{- $hasAnnotations := or .HasHints .Title}}
 	mcp.AddTool(
 		server,
 		&mcp.Tool{
 			Name:        "{{.Name}}",
+			{{- if .Title}}
+			Title:       "{{.Title}}",
+			{{- end}}
 			Description: "{{.Description}}",
 			{{- if .HasInputType}}
 			InputSchema: {{.InputSchemaVar}},
@@ -74,17 +77,20 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			{{- end}}
 			{{- if $hasAnnotations}}
 			Annotations: &mcp.ToolAnnotations{
+				{{- if .Title}}
+				Title: "{{.Title}}",
+				{{- end}}
 				{{- if .Readonly}}
 				ReadOnlyHint: true,
-				{{- end}}
-				{{- if .Destructive}}
-				DestructiveHint: boolPtr(true),
+				{{- else if .HasHints}}
+				ReadOnlyHint: false,
+				DestructiveHint: new({{.Destructive}}),
 				{{- end}}
 				{{- if .Idempotent}}
 				IdempotentHint: true,
 				{{- end}}
 				{{- if .OpenWorld}}
-				OpenWorldHint: boolPtr(true),
+				OpenWorldHint: new(true),
 				{{- end}}
 			},
 			{{- end}}
@@ -100,10 +106,6 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 	)
 
 	{{- end}}
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }
 
 {{- if .HasResources}}

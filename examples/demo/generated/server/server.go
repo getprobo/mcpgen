@@ -52,7 +52,9 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			InputSchema:  types.CalculateToolInputSchema,
 			OutputSchema: types.CalculateToolOutputSchema,
 			Annotations: &mcp.ToolAnnotations{
-				IdempotentHint: true,
+				ReadOnlyHint:    false,
+				DestructiveHint: new(false),
+				IdempotentHint:  true,
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (result *mcp.CallToolResult, output types.CalculateOutput, err error) {
@@ -71,7 +73,9 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			Description: "Perform basic arithmetic operations",
 			InputSchema: types.Calculate2ToolInputSchema,
 			Annotations: &mcp.ToolAnnotations{
-				IdempotentHint: true,
+				ReadOnlyHint:    false,
+				DestructiveHint: new(false),
+				IdempotentHint:  true,
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (result *mcp.CallToolResult, output map[string]any, err error) {
@@ -90,6 +94,10 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			Description:  "Create a new task",
 			InputSchema:  types.CreateTaskToolInputSchema,
 			OutputSchema: types.CreateTaskToolOutputSchema,
+			Annotations: &mcp.ToolAnnotations{
+				ReadOnlyHint:    false,
+				DestructiveHint: new(false),
+			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (result *mcp.CallToolResult, output types.CreateTaskOutput, err error) {
 			defer func() {
@@ -140,10 +148,6 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			return resolver.GetHistoryTool(ctx, req, input)
 		},
 	)
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }
 
 func registerResourceHandlers(server *mcp.Server, resolver ResolverInterface) {
