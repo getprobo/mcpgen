@@ -80,17 +80,11 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 				{{- if .Title}}
 				Title: "{{.Title}}",
 				{{- end}}
-				{{- if .Readonly}}
-				ReadOnlyHint: true,
-				{{- else if .HasHints}}
-				ReadOnlyHint: false,
+				{{- if .HasHints}}
+				ReadOnlyHint:    {{.Readonly}},
 				DestructiveHint: new({{.Destructive}}),
-				{{- end}}
-				{{- if .Idempotent}}
-				IdempotentHint: true,
-				{{- end}}
-				{{- if .OpenWorld}}
-				OpenWorldHint: new(true),
+				IdempotentHint:  {{.Idempotent}},
+				OpenWorldHint:   new({{.OpenWorld}}),
 				{{- end}}
 			},
 			{{- end}}

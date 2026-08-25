@@ -55,6 +55,7 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 				ReadOnlyHint:    false,
 				DestructiveHint: new(false),
 				IdempotentHint:  true,
+				OpenWorldHint:   new(false),
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.CalculateInput) (result *mcp.CallToolResult, output types.CalculateOutput, err error) {
@@ -76,6 +77,7 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 				ReadOnlyHint:    false,
 				DestructiveHint: new(false),
 				IdempotentHint:  true,
+				OpenWorldHint:   new(false),
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.Calculate2Input) (result *mcp.CallToolResult, output map[string]any, err error) {
@@ -97,6 +99,8 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			Annotations: &mcp.ToolAnnotations{
 				ReadOnlyHint:    false,
 				DestructiveHint: new(false),
+				IdempotentHint:  false,
+				OpenWorldHint:   new(false),
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.CreateTaskInput) (result *mcp.CallToolResult, output types.CreateTaskOutput, err error) {
@@ -115,8 +119,10 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			Description: "Search for items",
 			InputSchema: types.SearchToolInputSchema,
 			Annotations: &mcp.ToolAnnotations{
-				ReadOnlyHint:   true,
-				IdempotentHint: true,
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				IdempotentHint:  true,
+				OpenWorldHint:   new(false),
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.SearchInput) (result *mcp.CallToolResult, output map[string]any, err error) {
@@ -135,8 +141,10 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			Description: "Get calculation history",
 			InputSchema: types.GetHistoryToolInputSchema,
 			Annotations: &mcp.ToolAnnotations{
-				ReadOnlyHint:   true,
-				IdempotentHint: true,
+				ReadOnlyHint:    true,
+				DestructiveHint: new(false),
+				IdempotentHint:  true,
+				OpenWorldHint:   new(false),
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, input *types.GetHistoryInput) (result *mcp.CallToolResult, output map[string]any, err error) {
