@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,5 +48,16 @@ func TestApplyOptions(t *testing.T) {
 		original := errors.New("error panic")
 		opts.RecoverFunc(context.Background(), original)
 		assert.Equal(t, original, captured)
+	})
+
+	t.Run("server options are unset by default", func(t *testing.T) {
+		opts := ApplyOptions(nil)
+		assert.Nil(t, opts.ServerOptions)
+	})
+
+	t.Run("with server options", func(t *testing.T) {
+		serverOpts := &sdkmcp.ServerOptions{}
+		opts := ApplyOptions([]Option{WithServerOptions(serverOpts)})
+		assert.Same(t, serverOpts, opts.ServerOptions)
 	})
 }

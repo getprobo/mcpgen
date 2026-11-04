@@ -44,7 +44,7 @@ func New(resolver ResolverInterface, opts ...mcputil.Option) *mcp.Server {
 			Name:    "{{.ServerName}}",
 			Version: "{{.ServerVersion}}",
 		},
-		nil,
+		o.ServerOptions,
 	)
 
 	registerToolHandlers(server, resolver, &o)

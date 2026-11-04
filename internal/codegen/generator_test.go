@@ -647,6 +647,9 @@ func TestFullGenerateWorkflow(t *testing.T) {
 	if !containsString(serverStr, "mcp.NewServer") {
 		t.Error("server.go should use MCP SDK")
 	}
+	if !containsString(serverStr, "o.ServerOptions") {
+		t.Error("server.go should pass caller server options to the SDK")
+	}
 
 	resolverContent, err := os.ReadFile(filepath.Join(outputDir, "resolver.go"))
 	require.NoError(t, err, "Failed to read resolver.go")

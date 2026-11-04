@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // RecoverFunc is called when a tool handler panics. It receives the recovered
@@ -37,6 +39,10 @@ type Option func(*Options)
 // Options holds configuration for the generated MCP server.
 type Options struct {
 	RecoverFunc RecoverFunc
+
+	// ServerOptions is passed to the MCP SDK when the server is created.
+	// Nil leaves capability inference to the SDK.
+	ServerOptions *sdkmcp.ServerOptions
 }
 
 // WithRecoverFunc sets the panic recover function for tool handlers.
@@ -45,6 +51,14 @@ type Options struct {
 func WithRecoverFunc(fn RecoverFunc) Option {
 	return func(o *Options) {
 		o.RecoverFunc = fn
+	}
+}
+
+// WithServerOptions sets the MCP SDK options for the generated server.
+// A nil value leaves capability inference to the SDK.
+func WithServerOptions(opts *sdkmcp.ServerOptions) Option {
+	return func(o *Options) {
+		o.ServerOptions = opts
 	}
 }
 

@@ -33,7 +33,7 @@ func New(resolver ResolverInterface, opts ...mcputil.Option) *mcp.Server {
 			Name:    "demo-server",
 			Version: "1.0.0",
 		},
-		nil,
+		o.ServerOptions,
 	)
 
 	registerToolHandlers(server, resolver, &o)
