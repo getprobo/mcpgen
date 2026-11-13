@@ -66,9 +66,9 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 		&mcp.Tool{
 			Name:        "{{.Name}}",
 			{{- if .Title}}
-			Title:       "{{.Title}}",
+			Title:       {{printf "%q" .Title}},
 			{{- end}}
-			Description: "{{.Description}}",
+			Description: {{printf "%q" .Description}},
 			{{- if .HasInputType}}
 			InputSchema: {{.InputSchemaVar}},
 			{{- end}}
@@ -78,7 +78,7 @@ func registerToolHandlers(server *mcp.Server, resolver ResolverInterface, opts *
 			{{- if $hasAnnotations}}
 			Annotations: &mcp.ToolAnnotations{
 				{{- if .Title}}
-				Title: "{{.Title}}",
+				Title: {{printf "%q" .Title}},
 				{{- end}}
 				{{- if .HasHints}}
 				ReadOnlyHint:    {{.Readonly}},
@@ -111,7 +111,7 @@ func registerResourceHandlers(server *mcp.Server, resolver ResolverInterface) {
 		&mcp.Resource{
 			URI:         "{{.URI}}",
 			Name:        "{{.Name}}",
-			Description: "{{.Description}}",
+			Description: {{printf "%q" .Description}},
 			{{- if .MimeType}}
 			MIMEType:    "{{.MimeType}}",
 			{{- end}}
@@ -124,7 +124,7 @@ func registerResourceHandlers(server *mcp.Server, resolver ResolverInterface) {
 		&mcp.ResourceTemplate{
 			URITemplate: "{{.URITemplate}}",
 			Name:        "{{.Name}}",
-			Description: "{{.Description}}",
+			Description: {{printf "%q" .Description}},
 			{{- if .MimeType}}
 			MIMEType:    "{{.MimeType}}",
 			{{- end}}
@@ -145,13 +145,13 @@ func registerPromptHandlers(server *mcp.Server, resolver ResolverInterface) {
 		server,
 		&mcp.Prompt{
 			Name:        "{{.Name}}",
-			Description: "{{.Description}}",
+			Description: {{printf "%q" .Description}},
 			{{- if .Arguments}}
 			Arguments: []*mcp.PromptArgument{
 				{{- range .Arguments}}
 				{
 					Name:        "{{.Name}}",
-					Description: "{{.Description}}",
+					Description: {{printf "%q" .Description}},
 					Required:    {{.Required}},
 				},
 				{{- end}}

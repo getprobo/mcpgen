@@ -1,0 +1,15 @@
+# Found by a randomized description test: a backtick in a property
+# description used to end the raw string literal that holds the schema JSON.
+info:
+  title: escaping-property-backtick
+  version: 1.0.0
+
+tools:
+  - name: find_vendor
+    description: an organization and by sorted status with framework this controls controls and updated
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          description: by use its returns by updated find for by by find vendor its pass the `id` from `list_vendors`

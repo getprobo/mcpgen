@@ -1,0 +1,15 @@
+# Found by a randomized description test: a literal backslash-n in a tool
+# description used to generate fine but turn into a real newline in Go.
+info:
+  title: escaping-literal-backslash-n
+  version: 1.0.0
+
+tools:
+  - name: find_vendor
+    description: each list its with one per line, separated by \n
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          description: and a risk for name results by its
