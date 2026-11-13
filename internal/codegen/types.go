@@ -103,7 +103,8 @@ func (g *TypeGenerator) Generate(packageName string) ([]byte, error) {
 		}
 		sort.Strings(varNames)
 		for _, varName := range varNames {
-			schemaJSON := g.schemaVars[varName]
+			// A backtick would end the raw string literal; in JSON it can only sit inside a string, where \u0060 is the same text.
+			schemaJSON := strings.ReplaceAll(g.schemaVars[varName], "`", `\u0060`)
 			buf.WriteString(fmt.Sprintf("\t%s = mcp.MustUnmarshalSchema(`%s`)\n", varName, schemaJSON))
 		}
 		buf.WriteString(")\n\n")
